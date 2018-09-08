@@ -1,20 +1,30 @@
-﻿using CredProvider.NET.Interop2;
-using JamieHighfield.CredentialProvider.Controls;
-using System;
-using System.Drawing;
+﻿/* COPYRIGHT NOTICE
+ * 
+ * Copyright © Jamie Highfield 2018. All rights reserved.
+ * 
+ * This library is protected by UK, EU & international copyright laws and treaties. Unauthorised
+ * reproduction of this library outside of the constraints of the accompanied license, or any
+ * portion of it, may result in severe criminal penalties that will be prosecuted to the
+ * maximum extent possible under the law.
+ * 
+ */
 
-namespace JamieHighfield.CredentialProvider.Credentials
+using CredProvider.NET.Interop2;
+using JamieHighfield.CredentialProvider.Credentials;
+using System;
+
+namespace JamieHighfield.CredentialProvider.Controls
 {
-    public sealed class CredentialImage
+    public abstract class CredentialControlBase
     {
-        public CredentialImage(Bitmap image)
-            : this(image, CredentialFieldVisibilities.Both)
+        internal CredentialControlBase(CredentialFieldTypes type)
+            : this(type, CredentialFieldVisibilities.SelectedCredential)
         { }
 
-        public CredentialImage(Bitmap image, CredentialFieldVisibilities state)
+        internal CredentialControlBase(CredentialFieldTypes type, CredentialFieldVisibilities visibility)
         {
-            Image = image ?? throw new ArgumentNullException(nameof(image));
-            State = state;
+            Type = type;
+            State = visibility;
         }
 
         #region Variables
@@ -25,17 +35,21 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
         #region Properties
 
-        public Bitmap Image { get; private set; }
+        internal Action<Action<CredentialBase, int>> EventCallback { get; set; }
 
+        internal CredentialFieldTypes Type { get; private set; }
+        
         public CredentialFieldVisibilities State { get; private set; }
 
         #endregion
 
         #region Methods
-        
-        internal _CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR GetFieldDescriptor(int fieldId)
+
+        internal abstract _CREDENTIAL_PROVIDER_FIELD_TYPE GetNativeFieldType();
+
+        internal virtual _CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR GetFieldDescriptor(int fieldId)
         {
-            _CREDENTIAL_PROVIDER_FIELD_TYPE type = _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_TILE_IMAGE;
+            _CREDENTIAL_PROVIDER_FIELD_TYPE type = GetNativeFieldType();
 
             return new _CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR()
             {

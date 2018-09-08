@@ -1,4 +1,15 @@
-﻿using CredProvider.NET.Interop2;
+﻿/* COPYRIGHT NOTICE
+ * 
+ * Copyright © Jamie Highfield 2018. All rights reserved.
+ * 
+ * This library is protected by UK, EU & international copyright laws and treaties. Unauthorised
+ * reproduction of this library outside of the constraints of the accompanied license, or any
+ * portion of it, may result in severe criminal penalties that will be prosecuted to the
+ * maximum extent possible under the law.
+ * 
+ */
+
+using CredProvider.NET.Interop2;
 using JamieHighfield.CredentialProvider.Controls.Events;
 using System;
 
@@ -17,11 +28,11 @@ namespace JamieHighfield.CredentialProvider.Controls
             Size = size;
         }
 
-        public LabelControl(string text, LabelControlSizes size, EventHandler<TextControlTextChangedEventArgs> textChanged)
+        public LabelControl(string text, LabelControlSizes size, EventHandler<CredentialControlChangedEventArgs<LabelControl>> textChanged)
             : this(text, size, textChanged, CredentialFieldVisibilities.SelectedCredential)
         { }
 
-        public LabelControl(string text, LabelControlSizes size, EventHandler<TextControlTextChangedEventArgs> textChanged, CredentialFieldVisibilities visibility)
+        public LabelControl(string text, LabelControlSizes size, EventHandler<CredentialControlChangedEventArgs<LabelControl>> textChanged, CredentialFieldVisibilities visibility)
             : base(CredentialFieldTypes.TextBox, visibility)
         {
             Text = text;
@@ -48,7 +59,7 @@ namespace JamieHighfield.CredentialProvider.Controls
             {
                 _text = value;
 
-                TextChanged?.Invoke(this, new TextControlTextChangedEventArgs(this));
+                TextChanged?.Invoke(this, new CredentialControlChangedEventArgs<LabelControl>(this));
 
                 EventCallback?.Invoke((credential, fieldId) =>
                 {
@@ -81,14 +92,14 @@ namespace JamieHighfield.CredentialProvider.Controls
         {
             _text = text;
 
-            TextChanged?.Invoke(this, new TextControlTextChangedEventArgs(this));
+            TextChanged?.Invoke(this, new CredentialControlChangedEventArgs<LabelControl>(this));
         }
 
         #endregion
 
         #region Events
 
-        public event EventHandler<TextControlTextChangedEventArgs> TextChanged;
+        public event EventHandler<CredentialControlChangedEventArgs<LabelControl>> TextChanged;
 
         #endregion
     }

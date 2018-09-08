@@ -9,28 +9,16 @@
  * 
  */
 
-using System.Collections.Generic;
-
-namespace JamieHighfield.CredentialProvider.Credentials
+namespace JamieHighfield.CredentialProvider.Controls
 {
-    public sealed class CredentialFieldCollection : List<CredentialField>
+    public enum CredentialFieldTypes
     {
-        #region Variables
-
-
-
-        #endregion
-
-        #region Properties
-
-
-
-        #endregion
-
-        #region Methods
-
-
-
-        #endregion
+        Image,
+        Text,
+        CommandLink,
+        TextBox,
+        CheckBox,
+        ComboBox,
+        Button
     }
 }

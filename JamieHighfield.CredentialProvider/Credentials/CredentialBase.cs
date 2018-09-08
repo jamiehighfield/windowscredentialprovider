@@ -1,12 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
-using System.Linq;
-using System.Runtime.InteropServices;
+﻿/* COPYRIGHT NOTICE
+ * 
+ * Copyright © Jamie Highfield 2018. All rights reserved.
+ * 
+ * This library is protected by UK, EU & international copyright laws and treaties. Unauthorised
+ * reproduction of this library outside of the constraints of the accompanied license, or any
+ * portion of it, may result in severe criminal penalties that will be prosecuted to the
+ * maximum extent possible under the law.
+ * 
+ */
+
 using CredProvider.NET.Interop2;
 using JamieHighfield.CredentialProvider.Controls;
 using JamieHighfield.CredentialProvider.UI;
+using System;
+using System.Diagnostics;
+using System.Linq;
+using System.Runtime.InteropServices;
 using static JamieHighfield.CredentialProvider.Constants;
 
 namespace JamieHighfield.CredentialProvider.Credentials

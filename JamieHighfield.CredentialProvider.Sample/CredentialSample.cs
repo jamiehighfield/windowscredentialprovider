@@ -13,7 +13,7 @@ namespace JamieHighfield.CredentialProvider.Sample
         {
             Load += (sender, eventArgs) =>
             {
-                ((TextBoxControl)Controls[1]).Text = @"foo\abc";
+
             };
 
             Controls
@@ -22,7 +22,7 @@ namespace JamieHighfield.CredentialProvider.Sample
                     {
                         if (Controls.Count > 2)
                         {
-                            ((LabelControl)Controls[3]).Text = "Domain: " + GetDomain(eventArgs.TextBoxControl.Text);
+                            ((LabelControl)Controls[3]).Text = "Domain: " + GetDomain(eventArgs.Control.Text);
                         }
                     })
                 {
@@ -30,7 +30,7 @@ namespace JamieHighfield.CredentialProvider.Sample
                 })
                 .Add(new TextBoxControl("Password", true, (sender, eventArgs) =>
                 {
-                    if (eventArgs.TextBoxControl.Text == "abc")
+                    if (eventArgs.Control.Text == "abc")
                     {
                         Form1 f = new Form1();
                         f.ShowDialog(WindowHandle);

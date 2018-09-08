@@ -9,12 +9,16 @@
  * 
  */
 
-using System.Collections.Generic;
-
-namespace JamieHighfield.CredentialProvider.Credentials
+namespace JamieHighfield.CredentialProvider.Controls.Events
 {
-    public sealed class CredentialFieldCollection : List<CredentialField>
+    public sealed class CredentialControlChangedEventArgs<TCredentialControlType>
+        where TCredentialControlType : CredentialControlBase
     {
+        public CredentialControlChangedEventArgs(TCredentialControlType control)
+        {
+            Control = control;
+        }
+
         #region Variables
 
 
@@ -23,7 +27,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
         #region Properties
 
-
+        public TCredentialControlType Control { get; private set; }
 
         #endregion
 

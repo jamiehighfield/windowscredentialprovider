@@ -9,28 +9,20 @@
  * 
  */
 
-using System.Collections.Generic;
-
-namespace JamieHighfield.CredentialProvider.Credentials
+namespace JamieHighfield.CredentialProvider.Controls
 {
-    public sealed class CredentialFieldCollection : List<CredentialField>
+    /// <summary>
+    /// The size of a label control.
+    /// </summary>
+    public enum LabelControlSizes
     {
-        #region Variables
-
-
-
-        #endregion
-
-        #region Properties
-
-
-
-        #endregion
-
-        #region Methods
-
-
-
-        #endregion
+        /// <summary>
+        /// Small label control.
+        /// </summary>
+        Small,
+        /// <summary>
+        /// Large label control.
+        /// </summary>
+        Large
     }
 }
