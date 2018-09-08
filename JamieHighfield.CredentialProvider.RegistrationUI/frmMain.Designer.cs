@@ -1,6 +1,6 @@
 ﻿namespace JamieHighfield.CredentialProvider.RegistrationUI
 {
-    partial class Form1
+    partial class frmMain
     {
         /// <summary>
         /// Required designer variable.
@@ -29,35 +29,62 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmMain));
             this.mmuMain = new System.Windows.Forms.MainMenu(this.components);
-            this.menuItem1 = new System.Windows.Forms.MenuItem();
-            this.menuItem2 = new System.Windows.Forms.MenuItem();
+            this.mimRegistration = new System.Windows.Forms.MenuItem();
+            this.mimLoadAssembly = new System.Windows.Forms.MenuItem();
+            this.mimSeparator1 = new System.Windows.Forms.MenuItem();
+            this.mimRegisterAssembly = new System.Windows.Forms.MenuItem();
+            this.mimUnregisterAssembly = new System.Windows.Forms.MenuItem();
             this.sbrMain = new System.Windows.Forms.StatusBar();
+            this.sbpStatus = new System.Windows.Forms.StatusBarPanel();
             this.pnlMain = new System.Windows.Forms.Panel();
             this.lvwMain = new System.Windows.Forms.ListView();
-            this.sbpStatus = new System.Windows.Forms.StatusBarPanel();
-            this.pnlMain.SuspendLayout();
+            this.chrComGuid = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.chrComName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.chrComRegistered = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             ((System.ComponentModel.ISupportInitialize)(this.sbpStatus)).BeginInit();
+            this.pnlMain.SuspendLayout();
             this.SuspendLayout();
             // 
             // mmuMain
             // 
             this.mmuMain.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
-            this.menuItem1});
+            this.mimRegistration});
             // 
-            // menuItem1
+            // mimRegistration
             // 
-            this.menuItem1.Index = 0;
-            this.menuItem1.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
-            this.menuItem2});
-            this.menuItem1.Text = "&Registration";
+            this.mimRegistration.Index = 0;
+            this.mimRegistration.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
+            this.mimLoadAssembly,
+            this.mimSeparator1,
+            this.mimRegisterAssembly,
+            this.mimUnregisterAssembly});
+            this.mimRegistration.Text = "&Registration";
             // 
-            // menuItem2
+            // mimLoadAssembly
             // 
-            this.menuItem2.Index = 0;
-            this.menuItem2.Shortcut = System.Windows.Forms.Shortcut.CtrlO;
-            this.menuItem2.Text = "&Load Assembly...";
+            this.mimLoadAssembly.Index = 0;
+            this.mimLoadAssembly.Shortcut = System.Windows.Forms.Shortcut.CtrlO;
+            this.mimLoadAssembly.Text = "&Load Assembly...";
+            this.mimLoadAssembly.Click += new System.EventHandler(this.mimLoadAssembly_Click);
+            // 
+            // mimSeparator1
+            // 
+            this.mimSeparator1.Index = 1;
+            this.mimSeparator1.Text = "-";
+            // 
+            // mimRegisterAssembly
+            // 
+            this.mimRegisterAssembly.Index = 2;
+            this.mimRegisterAssembly.Text = "&Register Assembly";
+            this.mimRegisterAssembly.Click += new System.EventHandler(this.mimRegisterAssembly_Click);
+            // 
+            // mimUnregisterAssembly
+            // 
+            this.mimUnregisterAssembly.Index = 3;
+            this.mimUnregisterAssembly.Text = "&Unregister Assembly";
+            this.mimUnregisterAssembly.Click += new System.EventHandler(this.mimUnregisterAssembly_Click);
             // 
             // sbrMain
             // 
@@ -70,6 +97,13 @@
             this.sbrMain.SizingGrip = false;
             this.sbrMain.TabIndex = 0;
             this.sbrMain.Text = "statusBar1";
+            // 
+            // sbpStatus
+            // 
+            this.sbpStatus.AutoSize = System.Windows.Forms.StatusBarPanelAutoSize.Spring;
+            this.sbpStatus.Name = "sbpStatus";
+            this.sbpStatus.Text = "Done";
+            this.sbpStatus.Width = 1069;
             // 
             // pnlMain
             // 
@@ -84,21 +118,34 @@
             // lvwMain
             // 
             this.lvwMain.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.lvwMain.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.chrComGuid,
+            this.chrComName,
+            this.chrComRegistered});
             this.lvwMain.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lvwMain.FullRowSelect = true;
+            this.lvwMain.HideSelection = false;
             this.lvwMain.Location = new System.Drawing.Point(0, 0);
+            this.lvwMain.MultiSelect = false;
             this.lvwMain.Name = "lvwMain";
             this.lvwMain.Size = new System.Drawing.Size(1065, 660);
             this.lvwMain.TabIndex = 0;
             this.lvwMain.UseCompatibleStateImageBehavior = false;
+            this.lvwMain.View = System.Windows.Forms.View.Details;
             // 
-            // sbpStatus
+            // chrComGuid
             // 
-            this.sbpStatus.AutoSize = System.Windows.Forms.StatusBarPanelAutoSize.Spring;
-            this.sbpStatus.Name = "sbpStatus";
-            this.sbpStatus.Text = "Done";
-            this.sbpStatus.Width = 1069;
+            this.chrComGuid.Text = "COM GUID";
             // 
-            // Form1
+            // chrComName
+            // 
+            this.chrComName.Text = "COM Name";
+            // 
+            // chrComRegistered
+            // 
+            this.chrComRegistered.Text = "Registered";
+            // 
+            // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(11F, 24F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -109,11 +156,12 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.Menu = this.mmuMain;
-            this.Name = "Form1";
+            this.Name = "frmMain";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Credential Provider Registration";
-            this.pnlMain.ResumeLayout(false);
+            this.Shown += new System.EventHandler(this.frmMain_Shown);
             ((System.ComponentModel.ISupportInitialize)(this.sbpStatus)).EndInit();
+            this.pnlMain.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -121,12 +169,18 @@
         #endregion
 
         private System.Windows.Forms.MainMenu mmuMain;
-        private System.Windows.Forms.MenuItem menuItem1;
-        private System.Windows.Forms.MenuItem menuItem2;
+        private System.Windows.Forms.MenuItem mimRegistration;
+        private System.Windows.Forms.MenuItem mimLoadAssembly;
         private System.Windows.Forms.StatusBar sbrMain;
         private System.Windows.Forms.Panel pnlMain;
         private System.Windows.Forms.ListView lvwMain;
         private System.Windows.Forms.StatusBarPanel sbpStatus;
+        private System.Windows.Forms.ColumnHeader chrComGuid;
+        private System.Windows.Forms.ColumnHeader chrComName;
+        private System.Windows.Forms.ColumnHeader chrComRegistered;
+        private System.Windows.Forms.MenuItem mimSeparator1;
+        private System.Windows.Forms.MenuItem mimRegisterAssembly;
+        private System.Windows.Forms.MenuItem mimUnregisterAssembly;
     }
 }
 

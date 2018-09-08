@@ -1,5 +1,4 @@
-﻿using JamieHighfield.CredentialProvider.Controls;
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 
 namespace JamieHighfield.CredentialProvider.Sample
