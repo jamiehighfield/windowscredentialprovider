@@ -1,5 +1,5 @@
 ﻿using CredProvider.NET.Interop2;
-using JamieHighfield.CredentialProvider.Fields;
+using JamieHighfield.CredentialProvider.Controls;
 using System;
 using System.Drawing;
 
@@ -8,10 +8,10 @@ namespace JamieHighfield.CredentialProvider.Credentials
     public sealed class CredentialImage
     {
         public CredentialImage(Bitmap image)
-            : this(image, CredentialFieldStates.Both)
+            : this(image, CredentialFieldVisibilities.Both)
         { }
 
-        public CredentialImage(Bitmap image, CredentialFieldStates state)
+        public CredentialImage(Bitmap image, CredentialFieldVisibilities state)
         {
             Image = image ?? throw new ArgumentNullException(nameof(image));
             State = state;
@@ -27,19 +27,19 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
         public Bitmap Image { get; private set; }
 
-        public CredentialFieldStates State { get; private set; }
+        public CredentialFieldVisibilities State { get; private set; }
 
         #endregion
 
         #region Methods
         
-        internal _CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR GetFieldDescriptor()
+        internal _CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR GetFieldDescriptor(int fieldId)
         {
             _CREDENTIAL_PROVIDER_FIELD_TYPE type = _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_TILE_IMAGE;
 
             return new _CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR()
             {
-                dwFieldID = 0,
+                dwFieldID = (uint)fieldId,
                 cpft = type,
                 pszLabel = string.Empty,
                 guidFieldType = default(Guid)
@@ -50,9 +50,9 @@ namespace JamieHighfield.CredentialProvider.Credentials
         {
             _CREDENTIAL_PROVIDER_FIELD_STATE state = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_HIDDEN;
 
-            if (State.HasFlag(CredentialFieldStates.SelectedCredential) == true)
+            if (State.HasFlag(CredentialFieldVisibilities.SelectedCredential) == true)
             {
-                if (State.HasFlag(CredentialFieldStates.DeselectedCredential) == true)
+                if (State.HasFlag(CredentialFieldVisibilities.DeselectedCredential) == true)
                 {
                     state = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_BOTH;
                 }
@@ -61,7 +61,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
                     state = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_SELECTED_TILE;
                 }
             }
-            else if (State.HasFlag(CredentialFieldStates.DeselectedCredential) == true)
+            else if (State.HasFlag(CredentialFieldVisibilities.DeselectedCredential) == true)
             {
                 state = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_DESELECTED_TILE;
             }

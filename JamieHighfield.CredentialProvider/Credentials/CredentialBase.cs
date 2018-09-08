@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
 using CredProvider.NET.Interop2;
-using JamieHighfield.CredentialProvider.Fields;
+using JamieHighfield.CredentialProvider.Controls;
+using JamieHighfield.CredentialProvider.UI;
 using static JamieHighfield.CredentialProvider.Constants;
 
 namespace JamieHighfield.CredentialProvider.Credentials
@@ -12,69 +15,79 @@ namespace JamieHighfield.CredentialProvider.Credentials
     {
         public CredentialBase()
         {
-            Fields = new CredentialFieldCollection(this);
+            Controls = new CredentialControlCollection();
         }
 
-        public CredentialBase(Action<CredentialFieldCollection> fields, CredentialImage image)
+        public CredentialBase(ImageControl image)
             : this()
         {
-            fields?.Invoke(Fields);
-
             Image = image;
+            Button = new ButtonControl("Login");
         }
 
         #region Variables
 
-        private CredentialImage _image;
+
 
         #endregion
 
         #region Properties
 
-        public CredentialFieldCollection Fields { get; internal set; }
+        public CredentialControlCollection Controls { get; private set; }
 
-        internal int EffectiveDescriptorCount
+        internal CredentialFieldCollection Fields
         {
             get
             {
-                if (Image == null)
-                {
-                    return Fields.Count;
-                }
-                else
-                {
-                    return (Fields.Count + 1);
-                }
-            }
-        }
+                CredentialFieldCollection credentialFields = new CredentialFieldCollection();
 
-        public CredentialImage Image
-        {
-            get
-            {
-                return _image;
-            }
-            private set
-            {
-                _image = value;
-
-                int index = 0;
+                int currentFieldId = 0;
 
                 if (Image != null)
                 {
-                    index = 1;
+                    credentialFields.Add(
+                        new CredentialField(Image, currentFieldId));
+
+                    currentFieldId += 1;
                 }
 
-                foreach (CredentialFieldBase field in Fields)
+                foreach (CredentialControlBase control in Controls)
                 {
-                    field.FieldId = index;
+                    CredentialField field = new CredentialField(control, currentFieldId);
 
-                    index += 1;
+                    credentialFields.Add(field);
+
+                    control.EventCallback = (callback) =>
+                    {
+                        callback?.Invoke(this, field.FieldId);
+                    };
+
+                    currentFieldId += 1;
                 }
+
+                credentialFields.Add(
+                    new CredentialField(Button, currentFieldId));
+
+                return credentialFields;
             }
         }
 
+        public ButtonControl Button { get; private set; }
+
+        public ImageControl Image { get; private set; }
+
         internal ICredentialProviderCredentialEvents Events { get; private set; }
+
+        /// <summary>
+        /// The main window handle as <see cref="IntPtr"/> that is running the credential.
+        /// </summary>
+        public WindowHandle WindowHandle
+        {
+            get
+            {
+                return new WindowHandle(Process.GetCurrentProcess().MainWindowHandle);
+            }
+        }
 
         #endregion
 
@@ -108,6 +121,8 @@ namespace JamieHighfield.CredentialProvider.Credentials
         {
             pbAutoLogon = 0;
 
+            Load?.Invoke(this, new EventArgs());
+
             return HRESULT.S_OK;
         }
 
@@ -118,7 +133,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
         public int GetFieldState(uint dwFieldID, out _CREDENTIAL_PROVIDER_FIELD_STATE pcpfs, out _CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE pcpfis)
         {
-            if (dwFieldID > EffectiveDescriptorCount)
+            if (dwFieldID >= Fields.Count)
             {
                 pcpfs = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_HIDDEN;
                 pcpfis = _CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE.CPFIS_NONE;
@@ -126,25 +141,23 @@ namespace JamieHighfield.CredentialProvider.Credentials
                 return HRESULT.E_INVALIDARG;
             }
 
-            if (Image != null && dwFieldID == 0)
-            {
-                pcpfs = Image.GetFieldState();
-                pcpfis = _CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE.CPFIS_NONE;
-            }
-            else
-            {
-                CredentialFieldBase field = null;
+            CredentialField field = Fields[(int)dwFieldID];
 
-                if (Image == null)
+            pcpfs = field.GetState();
+
+            if (field.Control is TextBoxControl)
+            {
+                if (((TextBoxControl)field.Control).Focussed == true)
                 {
-                    field = Fields[(int)dwFieldID];
+                    pcpfis = _CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE.CPFIS_FOCUSED;
                 }
                 else
                 {
-                    field = Fields[(int)dwFieldID - 1];
+                    pcpfis = _CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE.CPFIS_NONE;
                 }
-
-                pcpfs = field.GetFieldState();
+            }
+            else
+            {
                 pcpfis = _CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE.CPFIS_NONE;
             }
 
@@ -153,35 +166,28 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
         public int GetStringValue(uint dwFieldID, out string ppsz)
         {
-            if (dwFieldID > EffectiveDescriptorCount || (Image != null && dwFieldID == 0))
+            if (dwFieldID >= Fields.Count)
             {
                 ppsz = string.Empty;
 
                 return HRESULT.E_INVALIDARG;
             }
 
-            CredentialFieldBase field = null;
+            CredentialField field = Fields[(int)dwFieldID];
 
-            if (Image == null)
+            if (field.Control is LabelControl)
             {
-                field = Fields[(int)dwFieldID];
+                ppsz = ((LabelControl)field.Control).Text;
             }
-            else
+            else if (field.Control is TextBoxControl)
             {
-                field = Fields[(int)dwFieldID - 1];
-            }
-            
-            if (field is TextField)
-            {
-                ppsz = ((TextField)field).Text;
-            }
-            else if (field is TextBoxField)
-            {
-                ppsz = ((TextBoxField)field).Text;
+                ppsz = ((TextBoxControl)field.Control).Text;
             }
             else
             {
                 ppsz = string.Empty;
+
+                return HRESULT.E_INVALIDARG;
             }
 
             return HRESULT.S_OK;
@@ -189,21 +195,32 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
         public int GetBitmapValue(uint dwFieldID, out IntPtr phbmp)
         {
-            if (dwFieldID > EffectiveDescriptorCount || Image == null || dwFieldID != 0)
+            if (dwFieldID >= Fields.Count)
             {
-                phbmp = (new Bitmap(32, 32)).GetHbitmap();
+                phbmp = IntPtr.Zero;
 
                 return HRESULT.E_INVALIDARG;
             }
 
-            phbmp = Image.Image.GetHbitmap();
+            CredentialField field = Fields[(int)dwFieldID];
+
+            if (field.Control is ImageControl)
+            {
+                phbmp = ((ImageControl)field.Control).Image.GetHbitmap();
+            }
+            else
+            {
+                phbmp = IntPtr.Zero;
+
+                return HRESULT.E_INVALIDARG;
+            }
 
             return HRESULT.S_OK;
         }
 
         public int GetCheckboxValue(uint dwFieldID, out int pbChecked, out string ppszLabel)
         {
-            if (dwFieldID > EffectiveDescriptorCount || (Image != null && dwFieldID == 0))
+            if (dwFieldID >= Fields.Count)
             {
                 pbChecked = 0;
                 ppszLabel = string.Empty;
@@ -211,59 +228,48 @@ namespace JamieHighfield.CredentialProvider.Credentials
                 return HRESULT.E_INVALIDARG;
             }
 
-            CredentialFieldBase field = null;
+            CredentialField field = Fields[(int)dwFieldID];
 
-            if (Image == null)
+            if (field.Control is CheckBoxControl)
             {
-                field = Fields[(int)dwFieldID];
+                pbChecked = (((CheckBoxControl)field.Control).Checked == true ? 1 : 0);
+                ppszLabel = ((CheckBoxControl)field.Control).Label;
             }
             else
             {
-                field = Fields[(int)dwFieldID - 1];
-            }
-
-            if ((field is CheckBoxField) == false)
-            {
                 pbChecked = 0;
                 ppszLabel = string.Empty;
 
                 return HRESULT.E_INVALIDARG;
             }
-
-            pbChecked = (((CheckBoxField)field).Checked == true ? 1 : 0);
-            ppszLabel = ((CheckBoxField)field).Label;
 
             return HRESULT.S_OK;
         }
 
         public int GetSubmitButtonValue(uint dwFieldID, out uint pdwAdjacentTo)
         {
-            if (dwFieldID > EffectiveDescriptorCount || (Image != null && dwFieldID == 0))
+            if (dwFieldID >= Fields.Count)
             {
-                pdwAdjacentTo = dwFieldID;
+                pdwAdjacentTo = 0;
 
                 return HRESULT.E_INVALIDARG;
             }
 
-            CredentialFieldBase field = null;
+            CredentialField field = Fields[(int)dwFieldID];
 
-            if (Image == null)
+            if (field.Control is ButtonControl)
             {
-                field = Fields[(int)dwFieldID];
+                pdwAdjacentTo = (uint)Fields
+                    .Where((f) => f.Control is TextBoxControl) //TODO
+                    .LastOrDefault()
+                    ?.FieldId;
             }
             else
             {
-                field = Fields[(int)dwFieldID - 1];
-            }
-
-            if ((field is ButtonField) == false)
-            {
-                pdwAdjacentTo = dwFieldID;
+                pdwAdjacentTo = 0;
 
                 return HRESULT.E_INVALIDARG;
             }
-
-            pdwAdjacentTo = dwFieldID;
 
             return HRESULT.S_OK;
         }
@@ -285,30 +291,24 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
         public int SetStringValue(uint dwFieldID, string psz)
         {
-            if (dwFieldID > EffectiveDescriptorCount || (Image != null && dwFieldID == 0))
+            if (dwFieldID >= Fields.Count)
             {
-                Console.WriteLine("error");
                 return HRESULT.E_INVALIDARG;
             }
 
-            CredentialFieldBase field = null;
+            CredentialField field = Fields[(int)dwFieldID];
 
-            if (Image == null)
+            if (field.Control is LabelControl)
             {
-                field = Fields[(int)dwFieldID];
+                ((LabelControl)field.Control).UpdateText(psz);
+            }
+            else if (field.Control is TextBoxControl)
+            {
+                ((TextBoxControl)field.Control).UpdateText(psz);
             }
             else
             {
-                field = Fields[(int)dwFieldID - 1];
-            }
-
-            if (field is TextField)
-            {
-                ((TextField)field).UpdateText(psz);
-            }
-            else if (field is TextBoxField)
-            {
-                ((TextBoxField)field).UpdateText(psz);
+                return HRESULT.E_INVALIDARG;
             }
 
             return HRESULT.S_OK;
@@ -316,30 +316,21 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
         public int SetCheckboxValue(uint dwFieldID, int bChecked)
         {
-            if (dwFieldID > EffectiveDescriptorCount || (Image != null && dwFieldID == 0))
+            if (dwFieldID >= Fields.Count)
             {
-                Console.WriteLine("error");
                 return HRESULT.E_INVALIDARG;
             }
 
-            CredentialFieldBase field = null;
+            CredentialField field = Fields[(int)dwFieldID];
 
-            if (Image == null)
+            if (field.Control is CheckBoxControl)
             {
-                field = Fields[(int)dwFieldID];
+                ((CheckBoxControl)field.Control).Checked = (bChecked == 1 ? true : false);
             }
             else
             {
-                field = Fields[(int)dwFieldID - 1];
-            }
-
-            if ((field is CheckBoxField) == false)
-            {
-
                 return HRESULT.E_INVALIDARG;
             }
-
-            ((CheckBoxField)field).Checked = (bChecked == 1 ? true : false);
 
             return HRESULT.S_OK;
         }
@@ -371,6 +362,12 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
             return HRESULT.S_OK;
         }
+        
+        #endregion
+
+        #region Events
+
+        public event EventHandler Load;
 
         #endregion
     }

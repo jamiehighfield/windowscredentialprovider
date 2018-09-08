@@ -1,9 +1,20 @@
-﻿using System;
+﻿/* COPYRIGHT NOTICE
+ * 
+ * Copyright © Jamie Highfield 2018. All rights reserved.
+ * 
+ * This library is protected by UK, EU & international copyright laws and treaties. Unauthorised
+ * reproduction of this library outside of the constraints of the accompanied license, or any
+ * portion of it may result in severe criminal penalties that will be prosecuted under the
+ * maximum extent possible under the law.
+ * 
+ */
+
+using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 using CredProvider.NET.Interop2;
 using JamieHighfield.CredentialProvider.Credentials;
-using JamieHighfield.CredentialProvider.Fields;
+using JamieHighfield.CredentialProvider.Controls;
 using static JamieHighfield.CredentialProvider.Constants;
 
 namespace JamieHighfield.CredentialProvider
@@ -108,40 +119,22 @@ namespace JamieHighfield.CredentialProvider
 
         public int GetFieldDescriptorCount(out uint pdwCount)
         {
-            pdwCount = (uint)Credential.EffectiveDescriptorCount;
+            pdwCount = (uint)Credential.Fields.Count;
 
             return HRESULT.S_OK;
         }
 
         public int GetFieldDescriptorAt(uint dwIndex, [Out] IntPtr ppcpfd)
         {
-            if (dwIndex > Credential.EffectiveDescriptorCount)
+            if (dwIndex >= Credential.Fields.Count)
             {
                 return HRESULT.E_INVALIDARG;
             }
 
-            _CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR fieldDescriptor;
+            CredentialField field = Credential.Fields[(int)dwIndex];
 
-            if (Credential.Image != null && dwIndex == 0)
-            {
-                fieldDescriptor = Credential.Image.GetFieldDescriptor();
-            }
-            else
-            {
-                CredentialFieldBase field = null;
-
-                if (Credential.Image == null)
-                {
-                    field = Credential.Fields[(int)dwIndex];
-                }
-                else
-                {
-                    field = Credential.Fields[(int)dwIndex - 1];
-                }
-
-                fieldDescriptor = field.GetFieldDescriptor();
-            }
-
+            _CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR fieldDescriptor = field.GetDescriptor();
+            
             IntPtr pcpfd = Marshal.AllocHGlobal(Marshal.SizeOf(fieldDescriptor));
 
             Marshal.StructureToPtr(fieldDescriptor, pcpfd, false);

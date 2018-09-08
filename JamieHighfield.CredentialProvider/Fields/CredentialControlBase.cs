@@ -2,18 +2,18 @@
 using JamieHighfield.CredentialProvider.Credentials;
 using System;
 
-namespace JamieHighfield.CredentialProvider.Fields
+namespace JamieHighfield.CredentialProvider.Controls
 {
-    public abstract class CredentialFieldBase
+    public abstract class CredentialControlBase
     {
-        internal CredentialFieldBase(CredentialFieldTypes type)
-            : this(type, CredentialFieldStates.SelectedCredential)
+        internal CredentialControlBase(CredentialFieldTypes type)
+            : this(type, CredentialFieldVisibilities.SelectedCredential)
         { }
 
-        internal CredentialFieldBase(CredentialFieldTypes type, CredentialFieldStates state)
+        internal CredentialControlBase(CredentialFieldTypes type, CredentialFieldVisibilities visibility)
         {
             Type = type;
-            State = state;
+            State = visibility;
         }
 
         #region Variables
@@ -24,13 +24,11 @@ namespace JamieHighfield.CredentialProvider.Fields
 
         #region Properties
 
-        internal CredentialBase Credential { get; set; }
+        internal Action<Action<CredentialBase, int>> EventCallback { get; set; }
 
-        internal int FieldId { get; set; }
-
-        public CredentialFieldTypes Type { get; private set; }
+        internal CredentialFieldTypes Type { get; private set; }
         
-        public CredentialFieldStates State { get; private set; }
+        public CredentialFieldVisibilities State { get; private set; }
 
         #endregion
 
@@ -38,13 +36,13 @@ namespace JamieHighfield.CredentialProvider.Fields
 
         internal abstract _CREDENTIAL_PROVIDER_FIELD_TYPE GetNativeFieldType();
 
-        internal virtual _CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR GetFieldDescriptor()
+        internal virtual _CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR GetFieldDescriptor(int fieldId)
         {
             _CREDENTIAL_PROVIDER_FIELD_TYPE type = GetNativeFieldType();
 
             return new _CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR()
             {
-                dwFieldID = (uint)FieldId,
+                dwFieldID = (uint)fieldId,
                 cpft = type,
                 pszLabel = string.Empty,
                 guidFieldType = default(Guid)
@@ -55,9 +53,9 @@ namespace JamieHighfield.CredentialProvider.Fields
         {
             _CREDENTIAL_PROVIDER_FIELD_STATE state = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_HIDDEN;
 
-            if (State.HasFlag(CredentialFieldStates.SelectedCredential) == true)
+            if (State.HasFlag(CredentialFieldVisibilities.SelectedCredential) == true)
             {
-                if (State.HasFlag(CredentialFieldStates.DeselectedCredential) == true)
+                if (State.HasFlag(CredentialFieldVisibilities.DeselectedCredential) == true)
                 {
                     state = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_BOTH;
                 }
@@ -66,7 +64,7 @@ namespace JamieHighfield.CredentialProvider.Fields
                     state = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_SELECTED_TILE;
                 }
             }
-            else if (State.HasFlag(CredentialFieldStates.DeselectedCredential) == true)
+            else if (State.HasFlag(CredentialFieldVisibilities.DeselectedCredential) == true)
             {
                 state = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_DESELECTED_TILE;
             }

@@ -1,16 +1,16 @@
 ﻿using CredProvider.NET.Interop2;
 
-namespace JamieHighfield.CredentialProvider.Fields
+namespace JamieHighfield.CredentialProvider.Controls
 {
-    public sealed class ButtonField : CredentialFieldBase
+    public sealed class ButtonControl : LabelledCredentialControlBase
     {
-        public ButtonField()
-            : base(CredentialFieldTypes.Button)
+        public ButtonControl(string label)
+            : base(CredentialFieldTypes.Text, label, CredentialFieldVisibilities.SelectedCredential)
         { }
 
         #region Variables
 
-
+        private string _text;
 
         #endregion
 
@@ -26,7 +26,7 @@ namespace JamieHighfield.CredentialProvider.Fields
         {
             return _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_SUBMIT_BUTTON;
         }
-
+        
         #endregion
     }
 }

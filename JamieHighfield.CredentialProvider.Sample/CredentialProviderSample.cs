@@ -1,4 +1,4 @@
-﻿using JamieHighfield.CredentialProvider.Fields;
+﻿using JamieHighfield.CredentialProvider.Controls;
 using System;
 using System.Runtime.InteropServices;
 
@@ -11,7 +11,7 @@ namespace JamieHighfield.CredentialProvider.Sample
     public sealed class CredentialProviderSample : CredentialProviderBase
     {
         public CredentialProviderSample()
-            : base(CredentialProviderUsageScenarios.CredentialsDialog, new CredentialSample())
+            : base(CredentialProviderUsageScenarios.CredentialsDialog | CredentialProviderUsageScenarios.Logon, new CredentialSample())
         { }
 
         #region Variables

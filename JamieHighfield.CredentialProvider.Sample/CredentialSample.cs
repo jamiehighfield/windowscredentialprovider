@@ -1,5 +1,5 @@
 ﻿using JamieHighfield.CredentialProvider.Credentials;
-using JamieHighfield.CredentialProvider.Fields;
+using JamieHighfield.CredentialProvider.Controls;
 using System;
 using System.Drawing;
 using System.Linq;
@@ -9,26 +9,35 @@ namespace JamieHighfield.CredentialProvider.Sample
     public sealed class CredentialSample : CredentialBase
     {
         public CredentialSample()
-            : base((fields) =>
-            {
-                fields
-                    .Add(
-                        new TextField("Reset password", TextFieldSizes.Large, CredentialFieldStates.DeselectedCredential));
-            }, new CredentialImage(Properties.Resources.Novelllogo))
+            : base(new ImageControl(Properties.Resources.Novelllogo))
         {
-            Fields
-                .Add(
-                    new TextBoxField("User name", false, (sender, eventArgs) =>
+            Load += (sender, eventArgs) =>
+            {
+                ((TextBoxControl)Controls[1]).Text = @"foo\abc";
+            };
+
+            Controls
+                .Add(new LabelControl("Reset password", LabelControlSizes.Large, CredentialFieldVisibilities.DeselectedCredential))
+                .Add(new TextBoxControl("User name", false, (sender, eventArgs) =>
                     {
-                        if (Fields.Count > 2)
+                        if (Controls.Count > 2)
                         {
-                            ((TextField)Fields[3]).Text = "Domain: " + GetDomain(eventArgs.TextBoxField.Text);
+                            ((LabelControl)Controls[3]).Text = "Domain: " + GetDomain(eventArgs.TextBoxControl.Text);
                         }
-                    }))
-                .Add(
-                    new TextBoxField("Password", true))
-                .Add(
-                    new TextField("Domain: " + GetDomain(string.Empty), TextFieldSizes.Small));
+                    })
+                {
+                    Focussed = true
+                })
+                .Add(new TextBoxControl("Password", true, (sender, eventArgs) =>
+                {
+                    if (eventArgs.TextBoxControl.Text == "abc")
+                    {
+                        Form1 f = new Form1();
+                        f.ShowDialog(WindowHandle);
+                    }
+                }))
+                .Add(new LabelControl("Domain: " + GetDomain(string.Empty), LabelControlSizes.Small))
+                .Add(new CheckBoxControl("Change password on login", false));
         }
 
         #region Variables

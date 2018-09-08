@@ -1,10 +1,10 @@
 ﻿using CredProvider.NET.Interop2;
 
-namespace JamieHighfield.CredentialProvider.Fields
+namespace JamieHighfield.CredentialProvider.Controls
 {
-    public sealed class CheckBoxField : LabelledCredentialFieldBase
+    public sealed class CheckBoxControl : LabelledCredentialControlBase
     {
-        public CheckBoxField(string label, bool @checked)
+        public CheckBoxControl(string label, bool @checked)
             : base(CredentialFieldTypes.TextBox, label)
         {
             Checked = @checked;

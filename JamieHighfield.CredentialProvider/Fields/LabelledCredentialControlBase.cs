@@ -1,16 +1,16 @@
 ﻿using CredProvider.NET.Interop2;
 using System;
 
-namespace JamieHighfield.CredentialProvider.Fields
+namespace JamieHighfield.CredentialProvider.Controls
 {
-    public abstract class LabelledCredentialFieldBase : CredentialFieldBase
+    public abstract class LabelledCredentialControlBase : CredentialControlBase
     {
-        internal LabelledCredentialFieldBase(CredentialFieldTypes type, string label)
-            : this(type, label, CredentialFieldStates.SelectedCredential)
+        internal LabelledCredentialControlBase(CredentialFieldTypes type, string label)
+            : this(type, label, CredentialFieldVisibilities.SelectedCredential)
         { }
 
-        internal LabelledCredentialFieldBase(CredentialFieldTypes type, string label, CredentialFieldStates state)
-            : base(type, state)
+        internal LabelledCredentialControlBase(CredentialFieldTypes type, string label, CredentialFieldVisibilities visibility)
+            : base(type, visibility)
         {
             Label = label;
         }
@@ -29,13 +29,13 @@ namespace JamieHighfield.CredentialProvider.Fields
 
         #region Methods
         
-        internal override _CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR GetFieldDescriptor()
+        internal override _CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR GetFieldDescriptor(int fieldId)
         {
             _CREDENTIAL_PROVIDER_FIELD_TYPE type = GetNativeFieldType();
 
             return new _CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR()
             {
-                dwFieldID = (uint)FieldId,
+                dwFieldID = (uint)fieldId,
                 cpft = type,
                 pszLabel = Label,
                 guidFieldType = default(Guid)

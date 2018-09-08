@@ -1,6 +1,9 @@
-﻿namespace JamieHighfield.CredentialProvider.Fields
+﻿namespace JamieHighfield.CredentialProvider.Controls
 {
-    public enum CredentialFieldStates
+    /// <summary>
+    /// The visibility of a control.
+    /// </summary>
+    public enum CredentialFieldVisibilities
     {
         /// <summary>
         /// Not displayed.
