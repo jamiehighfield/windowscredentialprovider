@@ -1,6 +1,7 @@
 ﻿using JamieHighfield.CredentialProvider.Controls;
 using JamieHighfield.CredentialProvider.Credentials;
 using JamieHighfield.CredentialProvider.Providers;
+using JamieHighfield.CredentialProvider.Providers.Interfaces;
 using System.Runtime.InteropServices;
 
 namespace JamieHighfield.CredentialProvider.Sample
@@ -9,7 +10,7 @@ namespace JamieHighfield.CredentialProvider.Sample
     [Guid("00016d50-0000-0000-b090-00006b0b0000")]
     [ClassInterface(ClassInterfaceType.None)]
     [ProgId("credsample1")]
-    public sealed class CredentialProviderSample : CredentialProviderSetUserArrayBase
+    public sealed class CredentialProviderSample : CredentialProviderBase, IUserArrayCredentialProvider
     {
         public CredentialProviderSample()
             : base(SystemCredentialProviders.Password, (usageScenario) =>

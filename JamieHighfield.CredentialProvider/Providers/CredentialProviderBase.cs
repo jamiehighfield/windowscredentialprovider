@@ -12,6 +12,7 @@
 using JamieHighfield.CredentialProvider.Controls;
 using JamieHighfield.CredentialProvider.Credentials;
 using JamieHighfield.CredentialProvider.Interop;
+using JamieHighfield.CredentialProvider.Logging;
 using JamieHighfield.CredentialProvider.Providers.Exceptions;
 using JamieHighfield.CredentialProvider.UI;
 using System;
@@ -94,7 +95,7 @@ namespace JamieHighfield.CredentialProvider.Providers
             UnderlyignCredentialProviderGuid = underlyingCredentialProviderGuid;
             UsageScenarios = usageScenarios;
             ControlsDelegate = controlsDelegate;
-            IncomingCredentialManipulator = incomingCredentialManipulator;
+            IncomingCredentialManipulator = incomingCredentialManipulator ?? throw new ArgumentNullException(nameof(incomingCredentialManipulator));
         }
 
         #region Variables
@@ -203,8 +204,16 @@ namespace JamieHighfield.CredentialProvider.Providers
 
         #region Credential Provider Interface Methods
 
-        public virtual int SetUsageScenario(_CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus, uint dwFlags)
+        #region ICredentialProvider
+
+        /// <summary>
+        /// Statutory method from <see cref="ICredentialProvider"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovider for more information.
+        /// </summary>
+        /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
+        public int SetUsageScenario(_CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus, uint dwFlags)
         {
+            GlobalLogger.LogMethodCall();
+
             if (UnderlyignCredentialProviderGuid != default(Guid) && UnderlyingCredentialProvider == null)
             {
                 //Try to load the credential provider GUID to wrap parsed in through the constructor. If this
@@ -224,11 +233,6 @@ namespace JamieHighfield.CredentialProvider.Providers
                     if ((comObject is ICredentialProvider) == false)
                     {
                         return HRESULT.E_NOTIMPL;
-                    }
-
-                    if (comObject is ICredentialProviderSetUserArray)
-                    {
-                        Logger.Write("FOOOOOOO BARRRRRRR");
                     }
 
                     UnderlyingCredentialProvider = (ICredentialProvider)comObject;
@@ -316,8 +320,14 @@ namespace JamieHighfield.CredentialProvider.Providers
             return HRESULT.S_OK;
         }
 
-        public virtual int SetSerialization(ref _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION pcpcs)
+        /// <summary>
+        /// Statutory method from <see cref="ICredentialProvider"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovider for more information.
+        /// </summary>
+        /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
+        public int SetSerialization(ref _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION pcpcs)
         {
+            GlobalLogger.LogMethodCall();
+
             //Check if there is a parent credential provider, and if so, run the same method on that credential provider.
 
             if (UnderlyingCredentialProvider != null)
@@ -335,8 +345,14 @@ namespace JamieHighfield.CredentialProvider.Providers
             return HRESULT.E_NOTIMPL;
         }
 
-        public virtual int Advise(ICredentialProviderEvents pcpe, ulong upAdviseContext)
+        /// <summary>
+        /// Statutory method from <see cref="ICredentialProvider"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovider for more information.
+        /// </summary>
+        /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
+        public int Advise(ICredentialProviderEvents pcpe, ulong upAdviseContext)
         {
+            GlobalLogger.LogMethodCall();
+
             //Check if there is a parent credential provider, and if so, run the same method on that credential provider.
 
             if (UnderlyingCredentialProvider != null)
@@ -359,8 +375,14 @@ namespace JamieHighfield.CredentialProvider.Providers
             return HRESULT.S_OK;
         }
 
-        public virtual int UnAdvise()
+        /// <summary>
+        /// Statutory method from <see cref="ICredentialProvider"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovider for more information.
+        /// </summary>
+        /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
+        public int UnAdvise()
         {
+            GlobalLogger.LogMethodCall();
+
             //Check if there is a parent credential provider, and if so, run the same method on that credential provider.
 
             if (UnderlyingCredentialProvider != null)
@@ -383,8 +405,14 @@ namespace JamieHighfield.CredentialProvider.Providers
             return HRESULT.S_OK;
         }
 
-        public virtual int GetFieldDescriptorCount(out uint pdwCount)
+        /// <summary>
+        /// Statutory method from <see cref="ICredentialProvider"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovider for more information.
+        /// </summary>
+        /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
+        public int GetFieldDescriptorCount(out uint pdwCount)
         {
+            GlobalLogger.LogMethodCall();
+
             pdwCount = 0;
 
             //Check if there is a parent credential provider, and if so, run the same method on that credential provider.
@@ -404,8 +432,14 @@ namespace JamieHighfield.CredentialProvider.Providers
             return HRESULT.S_OK;
         }
 
-        public virtual int GetFieldDescriptorAt(uint dwIndex, [Out] IntPtr ppcpfd)
+        /// <summary>
+        /// Statutory method from <see cref="ICredentialProvider"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovider for more information.
+        /// </summary>
+        /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
+        public int GetFieldDescriptorAt(uint dwIndex, [Out] IntPtr ppcpfd)
         {
+            GlobalLogger.LogMethodCall();
+
             int effectiveIndex = (int)dwIndex;
 
             //Check if there is a parent credential provider, and if so, run the same method on that credential provider.
@@ -457,8 +491,14 @@ namespace JamieHighfield.CredentialProvider.Providers
             return HRESULT.S_OK;
         }
 
-        public virtual int GetCredentialCount(out uint pdwCount, out uint pdwDefault, out int pbAutoLogonWithDefault)
+        /// <summary>
+        /// Statutory method from <see cref="ICredentialProvider"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovider for more information.
+        /// </summary>
+        /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
+        public int GetCredentialCount(out uint pdwCount, out uint pdwDefault, out int pbAutoLogonWithDefault)
         {
+            GlobalLogger.LogMethodCall();
+
             pdwCount = 0;
             pdwDefault = 0;
             pbAutoLogonWithDefault = 0;
@@ -477,8 +517,14 @@ namespace JamieHighfield.CredentialProvider.Providers
             return HRESULT.S_OK;
         }
 
-        public virtual int GetCredentialAt(uint dwIndex, out ICredentialProviderCredential ppcpc)
+        /// <summary>
+        /// Statutory method from <see cref="ICredentialProvider"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovider for more information.
+        /// </summary>
+        /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
+        public int GetCredentialAt(uint dwIndex, out ICredentialProviderCredential ppcpc)
         {
+            GlobalLogger.LogMethodCall();
+
             int effectiveIndex = (int)dwIndex;
 
             //Check if there is a parent credential provider, and if so, run the same method on that credential provider.
@@ -508,7 +554,7 @@ namespace JamieHighfield.CredentialProvider.Providers
                     CredentialBase wrappedCredential = (IncomingCredentialManipulator?.Invoke(CurrentUsageScenario) ?? throw new CredentialNullException());
 
                     wrappedCredential.CredentialProvider = this;
-                    wrappedCredential.BridgedCredential = credential;
+                    wrappedCredential.UnderlyingCredential = credential;
 
                     ppcpc = wrappedCredential;
 
@@ -531,6 +577,28 @@ namespace JamieHighfield.CredentialProvider.Providers
 
             return HRESULT.S_OK;
         }
+
+        #endregion
+
+        #region ICredentialProviderSetUserArray
+
+        /// <summary>
+        /// Statutory method from <see cref="ICredentialProviderSetUserArray"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidersetuserarray for more information.
+        /// </summary>
+        /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
+        public int SetUserArray(ICredentialProviderUserArray users)
+        {
+            GlobalLogger.LogMethodCall();
+
+            if (UnderlyingCredentialProvider != null && UnderlyingCredentialProvider is ICredentialProviderSetUserArray)
+            {
+                return ((ICredentialProviderSetUserArray)UnderlyingCredentialProvider).SetUserArray(users);
+            }
+
+            return HRESULT.E_NOTIMPL;
+        }
+
+        #endregion
 
         #endregion
 

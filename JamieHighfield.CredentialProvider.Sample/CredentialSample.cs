@@ -2,8 +2,13 @@
 
 namespace JamieHighfield.CredentialProvider.Sample
 {
-    public sealed class CredentialSample : Credential2Base
+    public sealed class CredentialSample : CredentialBase
     {
+        public CredentialSample()
+        {
+            //Windows
+        }
+
         #region Variables
 
 
