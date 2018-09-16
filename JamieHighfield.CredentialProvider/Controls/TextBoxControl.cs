@@ -9,8 +9,9 @@
  * 
  */
 
-using CredProvider.NET.Interop2;
 using JamieHighfield.CredentialProvider.Controls.Events;
+using JamieHighfield.CredentialProvider.Interop;
+using JamieHighfield.CredentialProvider.Providers;
 using System;
 
 namespace JamieHighfield.CredentialProvider.Controls
@@ -18,28 +19,33 @@ namespace JamieHighfield.CredentialProvider.Controls
     public sealed class TextBoxControl : LabelledCredentialControlBase
     {
         public TextBoxControl(string label, bool password)
-            : this(label, password, CredentialFieldVisibilities.SelectedCredential)
+            : this(CredentialFieldVisibilities.SelectedCredential, label, password)
         { }
 
-        public TextBoxControl(string label, bool password, CredentialFieldVisibilities visibility)
-            : base(CredentialFieldTypes.TextBox, label, visibility)
+        public TextBoxControl(CredentialFieldVisibilities visibility, string label, bool password)
+            : this(visibility, label, password, string.Empty)
+        { }
+
+        public TextBoxControl(Func<CredentialProviderUsageScenarios, CredentialFieldVisibilities> visibilityDelegate, string label, bool password)
+            : this(visibilityDelegate, label, password, string.Empty)
+        { }
+
+        public TextBoxControl(string label, bool password, string text)
+            : this(CredentialFieldVisibilities.SelectedCredential, label, false, text)
+        { }
+
+        public TextBoxControl(CredentialFieldVisibilities visibility, string label, bool password, string text)
+            : base(CredentialControlTypes.TextBox, visibility, label)
         {
             Password = password;
-
-            Text = string.Empty;
+            Text = text;
         }
 
-        public TextBoxControl(string label, bool password, EventHandler<CredentialControlChangedEventArgs<TextBoxControl>> textChanged)
-            : this(label, password, textChanged, CredentialFieldVisibilities.SelectedCredential)
-        { }
-
-        public TextBoxControl(string label, bool password, EventHandler<CredentialControlChangedEventArgs<TextBoxControl>> textChanged, CredentialFieldVisibilities state)
-            : base(CredentialFieldTypes.TextBox, label, state)
+        public TextBoxControl(Func<CredentialProviderUsageScenarios, CredentialFieldVisibilities> visibilityDelegate, string label, bool password, string text)
+            : base(CredentialControlTypes.TextBox, visibilityDelegate, label)
         {
             Password = password;
-            TextChanged += textChanged;
-
-            Text = string.Empty;
+            Text = text;
         }
 
         #region Variables
@@ -50,6 +56,9 @@ namespace JamieHighfield.CredentialProvider.Controls
 
         #region Properties
 
+        /// <summary>
+        /// Gets or sets the text for this <see cref="TextBoxControl"/>.
+        /// </summary>
         public string Text
         {
             get
@@ -60,18 +69,19 @@ namespace JamieHighfield.CredentialProvider.Controls
             {
                 _text = value;
 
-                TextChanged?.Invoke(this, new CredentialControlChangedEventArgs<TextBoxControl>(this));
+                TextChanged?.Invoke(this, new TextBoxControlTextChangedEventArgs(this));
 
                 EventCallback?.Invoke((credential, fieldId) =>
                 {
-                    credential.Events.SetFieldString(credential, (uint)fieldId, Text);
+                    //credential.Events.SetFieldString(credential, (uint)fieldId, Text);
                 });
             }
         }
 
+        /// <summary>
+        /// Gets whether this <see cref="TextBoxControl"/> should use a password character mark.
+        /// </summary>
         public bool Password { get; private set; }
-
-        public bool Focussed { get; set; }
 
         #endregion
 
@@ -93,14 +103,14 @@ namespace JamieHighfield.CredentialProvider.Controls
         {
             _text = text;
 
-            TextChanged?.Invoke(this, new CredentialControlChangedEventArgs<TextBoxControl>(this));
+            TextChanged?.Invoke(this, new TextBoxControlTextChangedEventArgs(this));
         }
 
         #endregion
 
         #region Events
 
-        public event EventHandler<CredentialControlChangedEventArgs<TextBoxControl>> TextChanged;
+        public event EventHandler<TextBoxControlTextChangedEventArgs> TextChanged;
 
         #endregion
     }

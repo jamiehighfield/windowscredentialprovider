@@ -9,14 +9,27 @@
  * 
  */
 
-using CredProvider.NET.Interop2;
+using JamieHighfield.CredentialProvider.Controls.Events;
+using JamieHighfield.CredentialProvider.Interop;
+using JamieHighfield.CredentialProvider.Providers;
+using System;
 
 namespace JamieHighfield.CredentialProvider.Controls
 {
     public sealed class CheckBoxControl : LabelledCredentialControlBase
     {
         public CheckBoxControl(string label, bool @checked)
-            : base(CredentialFieldTypes.TextBox, label)
+            : this(CredentialFieldVisibilities.SelectedCredential, label, @checked)
+        { }
+
+        public CheckBoxControl(CredentialFieldVisibilities visibility, string label, bool @checked)
+            : base(CredentialControlTypes.TextBox, label)
+        {
+            Checked = @checked;
+        }
+
+        public CheckBoxControl(Func<CredentialProviderUsageScenarios, CredentialFieldVisibilities> visibilityDelegate, string label, bool @checked)
+            : base(CredentialControlTypes.TextBox, visibilityDelegate, label)
         {
             Checked = @checked;
         }
@@ -39,6 +52,12 @@ namespace JamieHighfield.CredentialProvider.Controls
         {
             return _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_CHECKBOX;
         }
+
+        #endregion
+
+        #region Events
+
+        public event EventHandler<CheckBoxControlCheckChangedEventArgs> CheckChanged;
 
         #endregion
     }

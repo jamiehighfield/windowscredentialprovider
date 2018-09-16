@@ -9,20 +9,27 @@
  * 
  */
 
+using JamieHighfield.CredentialProvider.Interop;
+using JamieHighfield.CredentialProvider.Providers;
 using System;
 using System.Drawing;
-using CredProvider.NET.Interop2;
 
 namespace JamieHighfield.CredentialProvider.Controls
 {
     public sealed class ImageControl : CredentialControlBase
     {
         public ImageControl(Bitmap image)
-            : this(image, CredentialFieldVisibilities.Both)
+            : base(CredentialControlTypes.Image)
         { }
 
-        public ImageControl(Bitmap image, CredentialFieldVisibilities visibility)
-            : base(CredentialFieldTypes.Image, visibility)
+        public ImageControl(CredentialFieldVisibilities visibility, Bitmap image)
+            : base(CredentialControlTypes.Image, visibility)
+        {
+            Image = image ?? throw new ArgumentNullException(nameof(image));
+        }
+
+        public ImageControl(Func<CredentialProviderUsageScenarios, CredentialFieldVisibilities> visibilityDelegate, Bitmap image)
+            : base(CredentialControlTypes.Image, visibilityDelegate)
         {
             Image = image ?? throw new ArgumentNullException(nameof(image));
         }

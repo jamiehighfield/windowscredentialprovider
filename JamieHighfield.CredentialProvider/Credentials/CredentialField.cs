@@ -9,7 +9,7 @@
  * 
  */
 
-using CredProvider.NET.Interop2;
+using JamieHighfield.CredentialProvider.Interop;
 using JamieHighfield.CredentialProvider.Controls;
 using System;
 

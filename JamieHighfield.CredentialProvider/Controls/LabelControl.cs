@@ -9,36 +9,31 @@
  * 
  */
 
-using CredProvider.NET.Interop2;
 using JamieHighfield.CredentialProvider.Controls.Events;
+using JamieHighfield.CredentialProvider.Interop;
+using JamieHighfield.CredentialProvider.Providers;
 using System;
 
 namespace JamieHighfield.CredentialProvider.Controls
 {
     public sealed class LabelControl : CredentialControlBase
     {
-        public LabelControl(string text, LabelControlSizes size)
-            : this(text, size, CredentialFieldVisibilities.SelectedCredential)
+        public LabelControl(LabelControlSizes size, string text)
+            : this(CredentialFieldVisibilities.SelectedCredential, size, text)
         { }
 
-        public LabelControl(string text, LabelControlSizes size, CredentialFieldVisibilities visibility)
-            : base(CredentialFieldTypes.Text, visibility)
+        public LabelControl(CredentialFieldVisibilities visibility, LabelControlSizes size, string text)
+            : base(CredentialControlTypes.Label, visibility)
         {
-            Text = text;
             Size = size;
+            Text = text;
         }
 
-        public LabelControl(string text, LabelControlSizes size, EventHandler<CredentialControlChangedEventArgs<LabelControl>> textChanged)
-            : this(text, size, textChanged, CredentialFieldVisibilities.SelectedCredential)
-        { }
-
-        public LabelControl(string text, LabelControlSizes size, EventHandler<CredentialControlChangedEventArgs<LabelControl>> textChanged, CredentialFieldVisibilities visibility)
-            : base(CredentialFieldTypes.TextBox, visibility)
+        public LabelControl(Func<CredentialProviderUsageScenarios, CredentialFieldVisibilities> visibilityDelegate, LabelControlSizes size, string text)
+            : base(CredentialControlTypes.Label, visibilityDelegate)
         {
-            Text = text;
             Size = size;
-            Visibility = visibility;
-            TextChanged += textChanged;
+            Text = text;
         }
 
         #region Variables
@@ -49,6 +44,14 @@ namespace JamieHighfield.CredentialProvider.Controls
 
         #region Properties
 
+        /// <summary>
+        /// Gets the size of either <see cref="LabelControlSizes.Small"/> or <see cref="LabelControlSizes.Large"/> for this <see cref="LabelControl"/>.
+        /// </summary>
+        public LabelControlSizes Size { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the text for this <see cref="LabelControl"/>.
+        /// </summary>
         public string Text
         {
             get
@@ -59,18 +62,14 @@ namespace JamieHighfield.CredentialProvider.Controls
             {
                 _text = value;
 
-                TextChanged?.Invoke(this, new CredentialControlChangedEventArgs<LabelControl>(this));
+                TextChanged?.Invoke(this, new LabelControlTextChangedEventArgs(this));
 
                 EventCallback?.Invoke((credential, fieldId) =>
                 {
-                    credential.Events.SetFieldString(credential, (uint)fieldId, Text);
+                    //credential.Events.SetFieldString(credential, (uint)fieldId, Text);
                 });
             }
         }
-
-        public LabelControlSizes Size { get; private set; }
-
-        public CredentialFieldVisibilities Visibility { get; }
 
         #endregion
 
@@ -92,14 +91,14 @@ namespace JamieHighfield.CredentialProvider.Controls
         {
             _text = text;
 
-            TextChanged?.Invoke(this, new CredentialControlChangedEventArgs<LabelControl>(this));
+            TextChanged?.Invoke(this, new LabelControlTextChangedEventArgs(this));
         }
 
         #endregion
 
         #region Events
 
-        public event EventHandler<CredentialControlChangedEventArgs<LabelControl>> TextChanged;
+        public event EventHandler<LabelControlTextChangedEventArgs> TextChanged;
 
         #endregion
     }

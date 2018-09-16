@@ -9,16 +9,17 @@
  * 
  */
 
- using System;
-
-namespace JamieHighfield.CredentialProvider
+namespace JamieHighfield.CredentialProvider.Controls
 {
-    [Flags]
-    public enum CredentialProviderUsageScenarios
+    public enum CredentialControlTypes
     {
-        Logon = 2,
-        UnlockWorkstation = 4,
-        ChangePassword = 8,
-        CredentialsDialog = 16
+        Image,
+        Label,
+        CommandLink,
+        TextBox,
+        CheckBox,
+        ComboBox,
+        Button,
+        Link
     }
 }

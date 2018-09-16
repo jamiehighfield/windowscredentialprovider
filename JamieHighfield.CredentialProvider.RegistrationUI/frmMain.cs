@@ -1,5 +1,6 @@
 ﻿using JamieHighfield.CredentialProvider.Registration;
 using System;
+using System.IO;
 using System.Reflection;
 using System.Windows.Forms;
 
@@ -124,6 +125,11 @@ namespace JamieHighfield.CredentialProvider.RegistrationUI
             {
                 MessageBox.Show(exception.Message);
             }
+        }
+
+        private void mimCredentialsDialog_Click(object sender, EventArgs e)
+        {
+            Utilities.ShowCredentialsDialog();
         }
 
         #endregion

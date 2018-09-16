@@ -9,19 +9,26 @@
  * 
  */
 
-using CredProvider.NET.Interop2;
+using JamieHighfield.CredentialProvider.Interop;
+using JamieHighfield.CredentialProvider.Providers;
 using System;
 
 namespace JamieHighfield.CredentialProvider.Controls
 {
     public abstract class LabelledCredentialControlBase : CredentialControlBase
     {
-        internal LabelledCredentialControlBase(CredentialFieldTypes type, string label)
-            : this(type, label, CredentialFieldVisibilities.SelectedCredential)
+        internal LabelledCredentialControlBase(CredentialControlTypes type, string label)
+            : this(type, CredentialFieldVisibilities.SelectedCredential, label)
         { }
 
-        internal LabelledCredentialControlBase(CredentialFieldTypes type, string label, CredentialFieldVisibilities visibility)
+        internal LabelledCredentialControlBase(CredentialControlTypes type, CredentialFieldVisibilities visibility, string label)
             : base(type, visibility)
+        {
+            Label = label;
+        }
+
+        internal LabelledCredentialControlBase(CredentialControlTypes type, Func<CredentialProviderUsageScenarios, CredentialFieldVisibilities> visibilityDelegate, string label)
+            : base(type, visibilityDelegate)
         {
             Label = label;
         }

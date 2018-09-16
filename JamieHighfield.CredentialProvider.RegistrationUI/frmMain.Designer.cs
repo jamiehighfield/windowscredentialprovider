@@ -43,6 +43,8 @@
             this.chrComGuid = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.chrComName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.chrComRegistered = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.mimTools = new System.Windows.Forms.MenuItem();
+            this.mimCredentialsDialog = new System.Windows.Forms.MenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.sbpStatus)).BeginInit();
             this.pnlMain.SuspendLayout();
             this.SuspendLayout();
@@ -50,7 +52,8 @@
             // mmuMain
             // 
             this.mmuMain.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
-            this.mimRegistration});
+            this.mimRegistration,
+            this.mimTools});
             // 
             // mimRegistration
             // 
@@ -145,6 +148,19 @@
             // 
             this.chrComRegistered.Text = "Registered";
             // 
+            // mimTools
+            // 
+            this.mimTools.Index = 1;
+            this.mimTools.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
+            this.mimCredentialsDialog});
+            this.mimTools.Text = "&Tools";
+            // 
+            // mimCredentialsDialog
+            // 
+            this.mimCredentialsDialog.Index = 0;
+            this.mimCredentialsDialog.Text = "&Credentials Dialog...";
+            this.mimCredentialsDialog.Click += new System.EventHandler(this.mimCredentialsDialog_Click);
+            // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(11F, 24F);
@@ -181,6 +197,8 @@
         private System.Windows.Forms.MenuItem mimSeparator1;
         private System.Windows.Forms.MenuItem mimRegisterAssembly;
         private System.Windows.Forms.MenuItem mimUnregisterAssembly;
+        private System.Windows.Forms.MenuItem mimTools;
+        private System.Windows.Forms.MenuItem mimCredentialsDialog;
     }
 }
 

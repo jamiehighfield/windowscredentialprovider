@@ -9,22 +9,29 @@
  * 
  */
 
-using CredProvider.NET.Interop2;
 using JamieHighfield.CredentialProvider.Credentials;
+using JamieHighfield.CredentialProvider.Interop;
+using JamieHighfield.CredentialProvider.Providers;
 using System;
 
 namespace JamieHighfield.CredentialProvider.Controls
 {
     public abstract class CredentialControlBase
     {
-        internal CredentialControlBase(CredentialFieldTypes type)
+        internal CredentialControlBase(CredentialControlTypes type)
             : this(type, CredentialFieldVisibilities.SelectedCredential)
         { }
 
-        internal CredentialControlBase(CredentialFieldTypes type, CredentialFieldVisibilities visibility)
+        internal CredentialControlBase(CredentialControlTypes type, CredentialFieldVisibilities visibility)
         {
             Type = type;
-            State = visibility;
+            Visibility = visibility;
+        }
+
+        internal CredentialControlBase(CredentialControlTypes type, Func<CredentialProviderUsageScenarios, CredentialFieldVisibilities> visibilityDelegate)
+        {
+            Type = type;
+            VisibilityDelegate = visibilityDelegate;
         }
 
         #region Variables
@@ -35,11 +42,15 @@ namespace JamieHighfield.CredentialProvider.Controls
 
         #region Properties
 
+        internal CredentialProviderBase CredentialProvider { get; set; }
+
         internal Action<Action<CredentialBase, int>> EventCallback { get; set; }
 
-        internal CredentialFieldTypes Type { get; private set; }
+        internal CredentialControlTypes Type { get; private set; }
         
-        public CredentialFieldVisibilities State { get; private set; }
+        private CredentialFieldVisibilities Visibility { get; set; }
+
+        private Func<CredentialProviderUsageScenarios, CredentialFieldVisibilities> VisibilityDelegate { get; set; }
 
         #endregion
 
@@ -62,25 +73,30 @@ namespace JamieHighfield.CredentialProvider.Controls
 
         internal _CREDENTIAL_PROVIDER_FIELD_STATE GetFieldState()
         {
-            _CREDENTIAL_PROVIDER_FIELD_STATE state = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_HIDDEN;
+            _CREDENTIAL_PROVIDER_FIELD_STATE visibility = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_HIDDEN;
 
-            if (State.HasFlag(CredentialFieldVisibilities.SelectedCredential) == true)
+            if (VisibilityDelegate != null)
             {
-                if (State.HasFlag(CredentialFieldVisibilities.DeselectedCredential) == true)
+                Visibility = VisibilityDelegate.Invoke(CredentialProvider.CurrentUsageScenario);
+            }
+
+            if (Visibility.HasFlag(CredentialFieldVisibilities.SelectedCredential) == true)
+            {
+                if (Visibility.HasFlag(CredentialFieldVisibilities.DeselectedCredential) == true)
                 {
-                    state = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_BOTH;
+                    visibility = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_BOTH;
                 }
                 else
                 {
-                    state = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_SELECTED_TILE;
+                    visibility = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_SELECTED_TILE;
                 }
             }
-            else if (State.HasFlag(CredentialFieldVisibilities.DeselectedCredential) == true)
+            else if (Visibility.HasFlag(CredentialFieldVisibilities.DeselectedCredential) == true)
             {
-                state = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_DESELECTED_TILE;
+                visibility = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_DESELECTED_TILE;
             }
 
-            return state;
+            return visibility;
         }
 
         #endregion

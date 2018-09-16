@@ -9,25 +9,39 @@
  * 
  */
 
-using CredProvider.NET.Interop2;
+using JamieHighfield.CredentialProvider.Interop;
+using JamieHighfield.CredentialProvider.Providers;
+using System;
 
 namespace JamieHighfield.CredentialProvider.Controls
 {
     public sealed class ButtonControl : LabelledCredentialControlBase
     {
-        public ButtonControl(string label)
-            : base(CredentialFieldTypes.Text, label, CredentialFieldVisibilities.SelectedCredential)
+        public ButtonControl(string label, CredentialControlBase adjacentControl)
+            : this(CredentialFieldVisibilities.SelectedCredential, label, adjacentControl)
         { }
+
+        public ButtonControl(CredentialFieldVisibilities visibility, string label, CredentialControlBase adjacentControl)
+            : base(CredentialControlTypes.TextBox, label)
+        {
+            AdjacentControl = adjacentControl;
+        }
+
+        public ButtonControl(Func<CredentialProviderUsageScenarios, CredentialFieldVisibilities> visibilityDelegate, string label, CredentialControlBase adjacentControl)
+            : base(CredentialControlTypes.TextBox, visibilityDelegate, label)
+        {
+            AdjacentControl = adjacentControl;
+        }
 
         #region Variables
 
-        private string _text;
+
 
         #endregion
 
         #region Properties
 
-
+        public CredentialControlBase AdjacentControl { get; private set; }
 
         #endregion
 

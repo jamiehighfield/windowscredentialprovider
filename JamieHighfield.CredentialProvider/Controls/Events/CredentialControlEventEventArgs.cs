@@ -11,10 +11,10 @@
 
 namespace JamieHighfield.CredentialProvider.Controls.Events
 {
-    public sealed class CredentialControlChangedEventArgs<TCredentialControlType>
+    public abstract class CredentialControlEventEventArgs<TCredentialControlType>
         where TCredentialControlType : CredentialControlBase
     {
-        public CredentialControlChangedEventArgs(TCredentialControlType control)
+        public CredentialControlEventEventArgs(TCredentialControlType control)
         {
             Control = control;
         }
