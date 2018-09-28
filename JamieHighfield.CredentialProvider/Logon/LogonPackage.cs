@@ -9,17 +9,16 @@
  * 
  */
 
-using JamieHighfield.CredentialProvider.Credentials;
-using JamieHighfield.CredentialProvider.Providers;
+using JamieHighfield.CredentialProvider.Interfaces;
+using System;
 
 namespace JamieHighfield.CredentialProvider.Logon
 {
     public sealed class LogonPackage
     {
-        public LogonPackage(CredentialProviderUsageScenarios usageScenario, CredentialBase credential)
+        public LogonPackage(ICurrentEnvironment environment)
         {
-            UsageScenario = usageScenario;
-            Credential = credential ?? throw new System.ArgumentNullException(nameof(credential));
+            Environment = environment ?? throw new ArgumentNullException(nameof(environment));
         }
 
         #region Variables
@@ -30,9 +29,7 @@ namespace JamieHighfield.CredentialProvider.Logon
 
         #region Properties
 
-        public CredentialProviderUsageScenarios UsageScenario { get; private set; }
-
-        public CredentialBase Credential { get; private set; }
+        public ICurrentEnvironment Environment { get; private set; }
 
         #endregion
 

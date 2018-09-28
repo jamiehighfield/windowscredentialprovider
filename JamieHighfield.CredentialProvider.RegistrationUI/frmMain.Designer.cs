@@ -47,6 +47,8 @@ namespace JamieHighfield.CredentialProvider.RegistrationUI
             this.mimSeparator1 = new System.Windows.Forms.MenuItem();
             this.mimRegisterAssembly = new System.Windows.Forms.MenuItem();
             this.mimUnregisterAssembly = new System.Windows.Forms.MenuItem();
+            this.mimTools = new System.Windows.Forms.MenuItem();
+            this.mimCredentialsDialog = new System.Windows.Forms.MenuItem();
             this.sbrMain = new System.Windows.Forms.StatusBar();
             this.sbpStatus = new System.Windows.Forms.StatusBarPanel();
             this.pnlMain = new System.Windows.Forms.Panel();
@@ -54,8 +56,6 @@ namespace JamieHighfield.CredentialProvider.RegistrationUI
             this.chrComGuid = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.chrComName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.chrComRegistered = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.mimTools = new System.Windows.Forms.MenuItem();
-            this.mimCredentialsDialog = new System.Windows.Forms.MenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.sbpStatus)).BeginInit();
             this.pnlMain.SuspendLayout();
             this.SuspendLayout();
@@ -99,6 +99,19 @@ namespace JamieHighfield.CredentialProvider.RegistrationUI
             this.mimUnregisterAssembly.Index = 3;
             this.mimUnregisterAssembly.Text = "&Unregister Assembly";
             this.mimUnregisterAssembly.Click += new System.EventHandler(this.mimUnregisterAssembly_Click);
+            // 
+            // mimTools
+            // 
+            this.mimTools.Index = 1;
+            this.mimTools.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
+            this.mimCredentialsDialog});
+            this.mimTools.Text = "&Tools";
+            // 
+            // mimCredentialsDialog
+            // 
+            this.mimCredentialsDialog.Index = 0;
+            this.mimCredentialsDialog.Text = "&Credentials Dialog...";
+            this.mimCredentialsDialog.Click += new System.EventHandler(this.mimCredentialsDialog_Click);
             // 
             // sbrMain
             // 
@@ -158,19 +171,6 @@ namespace JamieHighfield.CredentialProvider.RegistrationUI
             // chrComRegistered
             // 
             this.chrComRegistered.Text = "Registered";
-            // 
-            // mimTools
-            // 
-            this.mimTools.Index = 1;
-            this.mimTools.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
-            this.mimCredentialsDialog});
-            this.mimTools.Text = "&Tools";
-            // 
-            // mimCredentialsDialog
-            // 
-            this.mimCredentialsDialog.Index = 0;
-            this.mimCredentialsDialog.Text = "&Credentials Dialog...";
-            this.mimCredentialsDialog.Click += new System.EventHandler(this.mimCredentialsDialog_Click);
             // 
             // frmMain
             // 

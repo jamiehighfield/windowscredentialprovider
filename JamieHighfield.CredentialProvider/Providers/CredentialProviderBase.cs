@@ -11,21 +11,28 @@
 
 using JamieHighfield.CredentialProvider.Controls;
 using JamieHighfield.CredentialProvider.Credentials;
+using JamieHighfield.CredentialProvider.Interfaces;
 using JamieHighfield.CredentialProvider.Interop;
 using JamieHighfield.CredentialProvider.Logging;
 using JamieHighfield.CredentialProvider.Providers.Exceptions;
 using JamieHighfield.CredentialProvider.UI;
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using static JamieHighfield.CredentialProvider.Constants;
 
 namespace JamieHighfield.CredentialProvider.Providers
 {
+    /// <summary>
+    /// Extend this class to create a new credential provider to be used in Windows. You must also add the attributes <see cref="ComVisibleAttribute"/>, <see cref="GuidAttribute"/> (for the COM GUID), <see cref="ProgIdAttribute"/> (for the COM identifier) and <see cref="ClassInterfaceAttribute"/> in order for this class to be correctly registered.
+    /// 
+    /// This wraps the functionality of the 'ICredentialProvider' interface.
+    /// </summary>
     [ComVisible(true)]
     [Guid("509E66FD-50EA-4863-9132-2ED365F12C0B")]
     [ClassInterface(ClassInterfaceType.None)]
-    public abstract class CredentialProviderBase : ICredentialProvider
+    public abstract class CredentialProviderBase : ICredentialProvider, ICurrentEnvironment
     {
         /// <summary>
         /// Instantiate a new <see cref="CredentialProviderBase"/> object.
@@ -47,7 +54,7 @@ namespace JamieHighfield.CredentialProvider.Providers
         /// </summary>
         /// <param name="credentialsDelegate">The <see cref="Action{CredentialCollection}"/> that will be invoked upon construction.</param>
         /// <param name="controlsDelegate">The <see cref="Action{CredentialControlCollection}"/> that will be invoked upon construction.</param>
-        protected CredentialProviderBase(Action<CredentialCollection> credentialsDelegate, Action<CredentialControlCollection> controlsDelegate)
+        protected CredentialProviderBase(Action<CredentialCollection> credentialsDelegate, Action<ICurrentEnvironment, CredentialControlCollection> controlsDelegate)
             : this(CredentialProviderUsageScenarios.All, credentialsDelegate, controlsDelegate)
         { }
 
@@ -57,9 +64,9 @@ namespace JamieHighfield.CredentialProvider.Providers
         /// <param name="usageScenarios">The <see cref="CredentialProviderUsageScenarios"/> that this credential provider will support when requested by Windows.</param>
         /// <param name="credentialsDelegate">The <see cref="Action{CredentialCollection}"/> that will be invoked upon construction.</param>
         /// <param name="controlsDelegate">The <see cref="Action{CredentialControlCollection}"/> that will be invoked upon construction.</param>
-        protected CredentialProviderBase(CredentialProviderUsageScenarios usageScenarios, Action<CredentialCollection> credentialsDelegate, Action<CredentialControlCollection> controlsDelegate)
+        protected CredentialProviderBase(CredentialProviderUsageScenarios usageScenarios, Action<CredentialCollection> credentialsDelegate, Action<ICurrentEnvironment, CredentialControlCollection> controlsDelegate)
         {
-            UsageScenarios = usageScenarios;
+            SupportedUsageScenarios = usageScenarios;
             CredentialsDelegate = credentialsDelegate;
             ControlsDelegate = controlsDelegate;
         }
@@ -67,33 +74,33 @@ namespace JamieHighfield.CredentialProvider.Providers
         /// <summary>
         /// Instantiate a new <see cref="CredentialProviderBase"/> object that will wrap an existing credential provider.
         /// </summary>
-        /// <param name="underlyingCredentialProviderGuid">The COM <see cref="Guid"/> of the credential provider that this credential provider should wrap.</param>
+        /// <param name="underlyingCredentialProviderGuid">The COM <see cref="ComGuid"/> of the credential provider that this credential provider should wrap.</param>
         /// <param name="incomingCredentialManipulator">Manipulate an incoming credential provider from the wrapped credential provider.</param>
-        protected CredentialProviderBase(Guid underlyingCredentialProviderGuid, Func<CredentialProviderUsageScenarios, CredentialBase> incomingCredentialManipulator)
+        protected CredentialProviderBase(Guid underlyingCredentialProviderGuid, Func<ICurrentEnvironment, CredentialBase> incomingCredentialManipulator)
             : this(underlyingCredentialProviderGuid, null, incomingCredentialManipulator)
         { }
 
         /// <summary>
         /// Instantiate a new <see cref="CredentialProviderBase"/> object that will wrap an existing credential provider.
         /// </summary>
-        /// <param name="underlyingCredentialProviderGuid">The COM <see cref="Guid"/> of the credential provider that this credential provider should wrap.</param>
+        /// <param name="underlyingCredentialProviderGuid">The COM <see cref="ComGuid"/> of the credential provider that this credential provider should wrap.</param>
         /// <param name="controlsDelegate">The <see cref="Action{CredentialControlCollection}"/> that will be invoked when fields are requested by Windows.</param>
         /// <param name="incomingCredentialManipulator">Manipulate an incoming credential provider from the wrapped credential provider.</param>
-        protected CredentialProviderBase(Guid underlyingCredentialProviderGuid, Action<CredentialControlCollection> controlsDelegate, Func<CredentialProviderUsageScenarios, CredentialBase> incomingCredentialManipulator)
+        protected CredentialProviderBase(Guid underlyingCredentialProviderGuid, Action<ICurrentEnvironment, CredentialControlCollection> controlsDelegate, Func<ICurrentEnvironment, CredentialBase> incomingCredentialManipulator)
             : this(underlyingCredentialProviderGuid, CredentialProviderUsageScenarios.All, controlsDelegate, incomingCredentialManipulator)
         { }
 
         /// <summary>
         /// Instantiate a new <see cref="CredentialProviderBase"/> object that will wrap an existing credential provider.
         /// </summary>
-        /// <param name="underlyingCredentialProviderGuid">The COM <see cref="Guid"/> of the credential provider that this credential provider should wrap.</param>
+        /// <param name="underlyingCredentialProviderGuid">The COM <see cref="ComGuid"/> of the credential provider that this credential provider should wrap.</param>
         /// <param name="usageScenarios">The <see cref="CredentialProviderUsageScenarios"/> that this credential provider will support when requested by Windows.</param>
         /// <param name="controlsDelegate">The <see cref="Action{CredentialControlCollection}"/> that will be invoked upon construction.</param>
         /// <param name="incomingCredentialManipulator">Manipulate an incoming credential provider from the wrapped credential provider.</param>
-        protected CredentialProviderBase(Guid underlyingCredentialProviderGuid, CredentialProviderUsageScenarios usageScenarios, Action<CredentialControlCollection> controlsDelegate, Func<CredentialProviderUsageScenarios, CredentialBase> incomingCredentialManipulator)
+        protected CredentialProviderBase(Guid underlyingCredentialProviderGuid, CredentialProviderUsageScenarios usageScenarios, Action<ICurrentEnvironment, CredentialControlCollection> controlsDelegate, Func<ICurrentEnvironment, CredentialBase> incomingCredentialManipulator)
         {
             UnderlyignCredentialProviderGuid = underlyingCredentialProviderGuid;
-            UsageScenarios = usageScenarios;
+            SupportedUsageScenarios = usageScenarios;
             ControlsDelegate = controlsDelegate;
             IncomingCredentialManipulator = incomingCredentialManipulator ?? throw new ArgumentNullException(nameof(incomingCredentialManipulator));
         }
@@ -106,17 +113,45 @@ namespace JamieHighfield.CredentialProvider.Providers
 
         #region Properties
 
+        #region ICurrentEnvironment
+
+        /// <summary>
+        /// Gets the <see cref="CredentialProviderUsageScenarios"/> that this credential provider will support when requested by Windows.
+        /// </summary>
+        public CredentialProviderUsageScenarios SupportedUsageScenarios { get; }
+
+        /// <summary>
+        /// Gets the <see cref="CredentialProviderUsageScenarios"/> representing the current scenario under which the credential provider is operating.
+        /// </summary>
+        public CredentialProviderUsageScenarios CurrentUsageScenario { get; private set; }
+
+        /// <summary>
+        /// Gets the handle of the main window for the parent process.
+        /// </summary>
+        public WindowHandle MainWindowHandle => new WindowHandle(Process.GetCurrentProcess().MainWindowHandle);
+        
+        #endregion
+
+
+
+
+
         #region Credential Provider Configuration
 
         /// <summary>
         /// Gets the <see cref="Guid"/> of the credential provider.
         /// </summary>
-        public Guid Guid => Guid.Parse("00016d50-0000-0000-b090-00006b0b0000");
+        public Guid ComGuid
+        {
+            get
+            {
+                return Guid.Parse(((GuidAttribute)GetType()
+                    .GetCustomAttributes(false)
+                    .Where((attribute) => attribute is GuidAttribute)
+                    .FirstOrDefault()).Value);
+            }
+        }
 
-        /// <summary>
-        /// Gets the <see cref="CredentialProviderUsageScenarios"/> that this credential provider will support when requested by Windows.
-        /// </summary>
-        public CredentialProviderUsageScenarios UsageScenarios { get; }
 
         /// <summary>
         /// Gets the 
@@ -133,17 +168,18 @@ namespace JamieHighfield.CredentialProvider.Providers
 
         internal ICredentialProvider UnderlyingCredentialProvider { get; private set; }
 
-        internal Func<CredentialProviderUsageScenarios, CredentialBase> IncomingCredentialManipulator { get; }
+        internal Func<ICurrentEnvironment, CredentialBase> IncomingCredentialManipulator { get; }
 
         #endregion
 
         internal ICredentialProviderEvents Events { get; private set; }
 
-        public CredentialProviderUsageScenarios CurrentUsageScenario { get; private set; }
+
+        public CredentialBase CurrentCredential { get; internal set; }
 
         private Action<CredentialCollection> CredentialsDelegate { get; }
 
-        private Action<CredentialControlCollection> ControlsDelegate { get; }
+        private Action<ICurrentEnvironment, CredentialControlCollection> ControlsDelegate { get; }
 
         internal CredentialFieldCollection Fields
         {
@@ -179,13 +215,7 @@ namespace JamieHighfield.CredentialProvider.Providers
                 return credentialFields;
             }
         }
-
-        #region Miscellaneous
-
-        public WindowHandle MainWindowHandle => new WindowHandle(Process.GetCurrentProcess().MainWindowHandle);
-
-        #endregion
-
+        
         #endregion
 
         #region Methods
@@ -210,7 +240,7 @@ namespace JamieHighfield.CredentialProvider.Providers
         /// Statutory method from <see cref="ICredentialProvider"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovider for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int SetUsageScenario(_CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus, uint dwFlags)
+        int ICredentialProvider.SetUsageScenario(_CREDENTIAL_PROVIDER_USAGE_SCENARIO cpus, uint dwFlags)
         {
             GlobalLogger.LogMethodCall();
 
@@ -258,15 +288,11 @@ namespace JamieHighfield.CredentialProvider.Providers
                     {
                         CurrentUsageScenario = CredentialProviderUsageScenarios.Logon;
 
-                        supportedUsageScenario = UsageScenarios.HasFlag(CredentialProviderUsageScenarios.Logon);
-
                         break;
                     }
                 case _CREDENTIAL_PROVIDER_USAGE_SCENARIO.CPUS_UNLOCK_WORKSTATION:
                     {
                         CurrentUsageScenario = CredentialProviderUsageScenarios.UnlockWorkstation;
-
-                        supportedUsageScenario = UsageScenarios.HasFlag(CredentialProviderUsageScenarios.UnlockWorkstation);
 
                         break;
                     }
@@ -274,15 +300,11 @@ namespace JamieHighfield.CredentialProvider.Providers
                     {
                         CurrentUsageScenario = CredentialProviderUsageScenarios.ChangePassword;
 
-                        supportedUsageScenario = UsageScenarios.HasFlag(CredentialProviderUsageScenarios.ChangePassword);
-
                         break;
                     }
                 case _CREDENTIAL_PROVIDER_USAGE_SCENARIO.CPUS_CREDUI:
                     {
                         CurrentUsageScenario = CredentialProviderUsageScenarios.CredentialsDialog;
-
-                        supportedUsageScenario = UsageScenarios.HasFlag(CredentialProviderUsageScenarios.CredentialsDialog);
 
                         break;
                     }
@@ -290,11 +312,11 @@ namespace JamieHighfield.CredentialProvider.Providers
                     {
                         CurrentUsageScenario = CredentialProviderUsageScenarios.PreLogonAccessProvider;
 
-                        supportedUsageScenario = UsageScenarios.HasFlag(CredentialProviderUsageScenarios.PreLogonAccessProvider);
-
                         break;
                     }
             }
+
+            supportedUsageScenario = this.IsCurrentUsageScenarioSupported();
 
             if (supportedUsageScenario == false)
             {
@@ -311,7 +333,7 @@ namespace JamieHighfield.CredentialProvider.Providers
 
             CredentialControlCollection controls = new CredentialControlCollection(this);
 
-            ControlsDelegate?.Invoke(controls);
+            ControlsDelegate?.Invoke(this, controls);
 
             AddControls(controls);
 
@@ -324,7 +346,7 @@ namespace JamieHighfield.CredentialProvider.Providers
         /// Statutory method from <see cref="ICredentialProvider"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovider for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int SetSerialization(ref _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION pcpcs)
+        int ICredentialProvider.SetSerialization(ref _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION pcpcs)
         {
             GlobalLogger.LogMethodCall();
 
@@ -349,7 +371,7 @@ namespace JamieHighfield.CredentialProvider.Providers
         /// Statutory method from <see cref="ICredentialProvider"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovider for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int Advise(ICredentialProviderEvents pcpe, ulong upAdviseContext)
+        int ICredentialProvider.Advise(ICredentialProviderEvents pcpe, ulong upAdviseContext)
         {
             GlobalLogger.LogMethodCall();
 
@@ -379,7 +401,7 @@ namespace JamieHighfield.CredentialProvider.Providers
         /// Statutory method from <see cref="ICredentialProvider"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovider for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int UnAdvise()
+        int ICredentialProvider.UnAdvise()
         {
             GlobalLogger.LogMethodCall();
 
@@ -409,7 +431,7 @@ namespace JamieHighfield.CredentialProvider.Providers
         /// Statutory method from <see cref="ICredentialProvider"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovider for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int GetFieldDescriptorCount(out uint pdwCount)
+        int ICredentialProvider.GetFieldDescriptorCount(out uint pdwCount)
         {
             GlobalLogger.LogMethodCall();
 
@@ -436,7 +458,7 @@ namespace JamieHighfield.CredentialProvider.Providers
         /// Statutory method from <see cref="ICredentialProvider"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovider for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int GetFieldDescriptorAt(uint dwIndex, [Out] IntPtr ppcpfd)
+        int ICredentialProvider.GetFieldDescriptorAt(uint dwIndex, [Out] IntPtr ppcpfd)
         {
             GlobalLogger.LogMethodCall();
 
@@ -495,7 +517,7 @@ namespace JamieHighfield.CredentialProvider.Providers
         /// Statutory method from <see cref="ICredentialProvider"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovider for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int GetCredentialCount(out uint pdwCount, out uint pdwDefault, out int pbAutoLogonWithDefault)
+        int ICredentialProvider.GetCredentialCount(out uint pdwCount, out uint pdwDefault, out int pbAutoLogonWithDefault)
         {
             GlobalLogger.LogMethodCall();
 
@@ -521,7 +543,7 @@ namespace JamieHighfield.CredentialProvider.Providers
         /// Statutory method from <see cref="ICredentialProvider"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovider for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int GetCredentialAt(uint dwIndex, out ICredentialProviderCredential ppcpc)
+        int ICredentialProvider.GetCredentialAt(uint dwIndex, out ICredentialProviderCredential ppcpc)
         {
             GlobalLogger.LogMethodCall();
 
@@ -551,7 +573,7 @@ namespace JamieHighfield.CredentialProvider.Providers
                         return result;
                     }
 
-                    CredentialBase wrappedCredential = (IncomingCredentialManipulator?.Invoke(CurrentUsageScenario) ?? throw new CredentialNullException());
+                    CredentialBase wrappedCredential = (IncomingCredentialManipulator?.Invoke(this) ?? throw new CredentialNullException());
 
                     wrappedCredential.CredentialProvider = this;
                     wrappedCredential.UnderlyingCredential = credential;
@@ -576,26 +598,6 @@ namespace JamieHighfield.CredentialProvider.Providers
             ppcpc = Credentials[effectiveIndex];
 
             return HRESULT.S_OK;
-        }
-
-        #endregion
-
-        #region ICredentialProviderSetUserArray
-
-        /// <summary>
-        /// Statutory method from <see cref="ICredentialProviderSetUserArray"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidersetuserarray for more information.
-        /// </summary>
-        /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int SetUserArray(ICredentialProviderUserArray users)
-        {
-            GlobalLogger.LogMethodCall();
-
-            if (UnderlyingCredentialProvider != null && UnderlyingCredentialProvider is ICredentialProviderSetUserArray)
-            {
-                return ((ICredentialProviderSetUserArray)UnderlyingCredentialProvider).SetUserArray(users);
-            }
-
-            return HRESULT.E_NOTIMPL;
         }
 
         #endregion

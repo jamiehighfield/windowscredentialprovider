@@ -51,7 +51,7 @@ namespace JamieHighfield.CredentialProvider.Sample
             }
             catch { }
 
-            return new LogonResponse("The username or password entered was incorrect.");
+            return new LogonResponse(LogonResponseErrorTypes.Error, "The username or password entered was incorrect.");
         }
         
         #endregion

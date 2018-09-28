@@ -10,6 +10,7 @@
  */
 
 using System;
+using System.IO;
 using JamieHighfield.CredentialProvider.Logging.Interfaces;
 
 namespace JamieHighfield.CredentialProvider.Logging

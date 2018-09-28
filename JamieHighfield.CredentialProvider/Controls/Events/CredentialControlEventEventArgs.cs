@@ -9,6 +9,9 @@
  * 
  */
 
+using JamieHighfield.CredentialProvider.Credentials;
+using System;
+
 namespace JamieHighfield.CredentialProvider.Controls.Events
 {
     public abstract class CredentialControlEventEventArgs<TCredentialControlType>
@@ -16,7 +19,7 @@ namespace JamieHighfield.CredentialProvider.Controls.Events
     {
         public CredentialControlEventEventArgs(TCredentialControlType control)
         {
-            Control = control;
+            Control = control ?? throw new ArgumentNullException(nameof(control));
         }
 
         #region Variables
@@ -26,6 +29,8 @@ namespace JamieHighfield.CredentialProvider.Controls.Events
         #endregion
 
         #region Properties
+
+        public CredentialBase Credential { get; private set; }
 
         public TCredentialControlType Control { get; private set; }
 

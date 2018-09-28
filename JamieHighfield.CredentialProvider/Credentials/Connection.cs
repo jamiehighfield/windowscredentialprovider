@@ -1,22 +1,18 @@
-﻿/* COPYRIGHT NOTICE
- * 
- * Copyright © Jamie Highfield 2018. All rights reserved.
- * 
- * This library is protected by UK, EU & international copyright laws and treaties. Unauthorised
- * reproduction of this library outside of the constraints of the accompanied license, or any
- * portion of it, may result in severe criminal penalties that will be prosecuted to the
- * maximum extent possible under the law.
- * 
- */
-
-using JamieHighfield.CredentialProvider.Interop;
+﻿using JamieHighfield.CredentialProvider.Interop;
 using static JamieHighfield.CredentialProvider.Constants;
 
-namespace JamieHighfield.CredentialProvider.Credentials.Events
+namespace JamieHighfield.CredentialProvider.Credentials
 {
-    public sealed class ConnectingEventArgs
+    /// <summary>
+    /// This class is used as a parameter in the <see cref="ConnectableCredentialBase.ProcessConnection"/> method to provide methods for interacting with the Windows logon screen during the connection process.
+    /// </summary>
+    public sealed class Connection
     {
-        internal ConnectingEventArgs(IQueryContinueWithStatus status)
+        /// <summary>
+        /// Instantiate a new <see cref="Connection"/>.
+        /// </summary>
+        /// <param name="status">The underlying <see cref="IQueryContinueWithStatus"/> object; the implementation of which provided by Windows.</param>
+        internal Connection(IQueryContinueWithStatus status)
         {
             Status = status;
         }
@@ -43,14 +39,18 @@ namespace JamieHighfield.CredentialProvider.Credentials.Events
         }
 
         /// <summary>
-        /// Gets whether the operation was cancelled. To cancell the operation, you should use the <see cref="Cancel"/> method.
+        /// Gets whether the operation was cancelled. To cancel the operation, you should use the <see cref="Cancel()"/> method.
         /// </summary>
-        internal bool Cancelled { get; private set; }
+        public bool Cancelled { get; private set; }
 
         #endregion
 
         #region Methods
 
+        /// <summary>
+        /// Update the currently displayed status text.
+        /// </summary>
+        /// <param name="statusText"></param>
         public void UpdateStatus(string statusText)
         {
             Status.SetStatusMessage(statusText);

@@ -17,15 +17,14 @@ namespace JamieHighfield.CredentialProvider.Logon
     {
         public LogonResponse(LogonPackage logonPackage, WindowsLogonPackage windowsLogonPackage)
         {
-            Successful = true;
             LogonPackage = logonPackage ?? throw new ArgumentNullException(nameof(logonPackage));
             WindowsLogonPackage = windowsLogonPackage ?? throw new ArgumentNullException(nameof(windowsLogonPackage));
         }
 
-        public LogonResponse(string errorMessage)
+        public LogonResponse(LogonResponseErrorTypes errorType, string errorMessage)
         {
-            Successful = false;
-            ErrorMessage = errorMessage;
+            ErrorType = errorType;
+            ErrorMessage = errorMessage ?? throw new ArgumentNullException(nameof(errorMessage));
         }
 
         #region Variables
@@ -36,11 +35,11 @@ namespace JamieHighfield.CredentialProvider.Logon
 
         #region Properties
 
-        public bool Successful { get; private set; }
-
         public LogonPackage LogonPackage { get; private set; }
 
         public WindowsLogonPackage WindowsLogonPackage { get; private set; }
+
+        public LogonResponseErrorTypes ErrorType { get; private set; }
 
         public string ErrorMessage { get; private set; }
 

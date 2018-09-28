@@ -12,6 +12,7 @@
 using JamieHighfield.CredentialProvider.Controls;
 using JamieHighfield.CredentialProvider.Controls.Events;
 using JamieHighfield.CredentialProvider.Credentials.Events;
+using JamieHighfield.CredentialProvider.Interfaces;
 using JamieHighfield.CredentialProvider.Interop;
 using JamieHighfield.CredentialProvider.Logging;
 using JamieHighfield.CredentialProvider.Logon;
@@ -29,7 +30,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
     /// <summary>
     /// Extend this class to expose a class as a credential.
     /// </summary>
-    public abstract class CredentialBase : ICredentialProviderCredential
+    public abstract class CredentialBase : ICredentialProviderCredential, ICurrentEnvironment
     {
         /// <summary>
         /// Instantiate a new <see cref="CredentialBase"/> object.
@@ -60,6 +61,25 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
         #region Properties
 
+        #region ICurrentEnvironment
+
+        /// <summary>
+        /// Gets the <see cref="CredentialProviderUsageScenarios"/> that this credential provider will support when requested by Windows.
+        /// </summary>
+        public CredentialProviderUsageScenarios SupportedUsageScenarios => CredentialProvider.SupportedUsageScenarios;
+
+        /// <summary>
+        /// Gets the <see cref="CredentialProviderUsageScenarios"/> representing the current scenario under which the credential provider is operating.
+        /// </summary>
+        public CredentialProviderUsageScenarios CurrentUsageScenario => CredentialProvider.CurrentUsageScenario;
+
+        /// <summary>
+        /// Gets the handle of the main window for the parent process.
+        /// </summary>
+        public WindowHandle MainWindowHandle => CredentialProvider.MainWindowHandle;
+
+        #endregion
+
         #region Credential Configuration
 
         /// <summary>
@@ -75,12 +95,17 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// <summary>
         /// Gets or sets the <see cref="LogonSequencePipelineBase"/> instance used during the logon sequence.
         /// </summary>
-        private LogonSequencePipelineBase LogonSequencePipeline { get; set; }
+        internal LogonSequencePipelineBase LogonSequencePipeline { get; private set; }
+        
+        /// <summary>
+        /// Gets whether the connect operation was cancelled or cancelled by the user clicking the 'Cancel' button.
+        /// </summary>
+        private bool ConnectCancelled { get; set; }
 
         /// <summary>
-        /// Gets or sets the <see cref="LogonResponse"/> which is returned from the output of running the <see cref="LogonSequencePipeline"/>.
+        /// Gets the error message to be displayed if the connect operation was cancelled.
         /// </summary>
-        private LogonResponse LogonResponse { get; set; }
+        private string ConnectCancelledMessage { get; set; }
 
         /// <summary>
         /// Gets or sets whether this credential should forward an authentication package to Windows. This property will be ignored if this credential forms part of a wrapped credential.
@@ -104,19 +129,41 @@ namespace JamieHighfield.CredentialProvider.Credentials
                 return CredentialProvider.Fields;
             }
         }
-
-        #region Miscellaneous
-
-        /// <summary>
-        /// The <see cref="IntPtr"/> handle of the curernt main window. When this credential is used on the Windows login screen, this will be the handle of the Logon UI and when this credential is used in a credentials dialog, this will be the handle of that dialog. The <see cref="WindowHandle"/> that is returned can be used in the <see cref="Form.ShowDialog(System.Windows.Forms.IWin32Window)"/> method and <see cref="MessageBox.Show(IWin32Window, string)"/> family of methods.
-        /// </summary>
-        public WindowHandle MainWindowHandle => new WindowHandle(Process.GetCurrentProcess().MainWindowHandle);
-
-        #endregion
-
+        
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// This method is called to get a <see cref="Logon.LogonResponse"/> containing a logon package that can be used to logon to Windows. By default, this method runs the <see cref="Logon.LogonSequencePipeline"/> within this credential and returns the <see cref="Logon.LogonResponse"/> from that.This method will be ignored if an underlying credential has been specified. This method can be overridden to provide different behaviour. 
+        /// </summary>
+        /// <returns></returns>
+        public virtual LogonResponse ProcessLogon()
+        {
+            if (LogonSequencePipeline == null)
+            {
+                GlobalLogger.Log(LogLevels.Warning, "The default behaviour of this credential provider is to process a logon sequence pipeline. The provided logon sequence pipeline was either null or in the incorrect format.");
+
+                return new LogonResponse(LogonResponseErrorTypes.Error, "The default behaviour of this credential provider is to process a logon sequence pipeline. The provided logon sequence pipeline was either null or in the incorrect format. Please contact your system administrator.");
+            }
+            else
+            {
+                LogonResponse logonResponse = LogonSequencePipeline.ProcessSequencePipeline(new LogonPackage(this));
+
+                if (logonResponse == null || logonResponse?.ErrorMessage != null)
+                {
+                    GlobalLogger.Log(LogLevels.Warning, "The default behaviour of this credential provider is to process a logon sequence pipeline. The provided logon sequence pipeline returned either null or an object in the incorrect format."
+                        + Environment.NewLine
+                        + Environment.NewLine
+                        + "The provided error message was:"
+                        + Environment.NewLine
+                        + Environment.NewLine
+                        + logonResponse.ErrorMessage);
+                }
+
+                return logonResponse;
+            }
+        }
 
         internal int NegotiateAuthentication(out uint negotiateAuthenticationPackage)
         {
@@ -134,6 +181,18 @@ namespace JamieHighfield.CredentialProvider.Credentials
             return (int)status;
         }
 
+        public string GetNativeStringValue(int fieldId)
+        {
+            int result = UnderlyingCredential.GetStringValue((uint)fieldId, out string value);
+
+            if (result != HRESULT.S_OK)
+            {
+                return string.Empty;
+            }
+
+            return value;
+        }
+
         #region Credential Provider Interface Methods
 
         #region ICredentialProviderCredential
@@ -142,7 +201,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int Advise(ICredentialProviderCredentialEvents pcpce)
+        int ICredentialProviderCredential.Advise(ICredentialProviderCredentialEvents pcpce)
         {
             GlobalLogger.LogMethodCall();
 
@@ -167,7 +226,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int UnAdvise()
+        int ICredentialProviderCredential.UnAdvise()
         {
             GlobalLogger.LogMethodCall();
 
@@ -193,7 +252,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int SetSelected(out int pbAutoLogon)
+        int ICredentialProviderCredential.SetSelected(out int pbAutoLogon)
         {
             GlobalLogger.LogMethodCall();
 
@@ -211,6 +270,8 @@ namespace JamieHighfield.CredentialProvider.Credentials
                 }
             }
 
+            CredentialProvider.CurrentCredential = this;
+
             LoadedEventArgs loadedEventArgs = new LoadedEventArgs((pbAutoLogon == 1 ? true : false));
 
             Loaded?.Invoke(this, loadedEventArgs);
@@ -225,25 +286,31 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int SetDeselected()
+        int ICredentialProviderCredential.SetDeselected()
         {
             GlobalLogger.LogMethodCall();
 
+            int result;
+
             if (UnderlyingCredential == null)
             {
-                return HRESULT.E_NOTIMPL;
+                result = HRESULT.E_NOTIMPL;
             }
             else
             {
-                return UnderlyingCredential.SetDeselected();
+                result = UnderlyingCredential.SetDeselected();
             }
+
+            CredentialProvider.CurrentCredential = null;
+
+            return result;
         }
 
         /// <summary>
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int GetFieldState(uint dwFieldID, out _CREDENTIAL_PROVIDER_FIELD_STATE pcpfs, out _CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE pcpfis)
+        int ICredentialProviderCredential.GetFieldState(uint dwFieldID, out _CREDENTIAL_PROVIDER_FIELD_STATE pcpfs, out _CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE pcpfis)
         {
             GlobalLogger.LogMethodCall();
 
@@ -304,7 +371,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int GetStringValue(uint dwFieldID, out string ppsz)
+        int ICredentialProviderCredential.GetStringValue(uint dwFieldID, out string ppsz)
         {
             GlobalLogger.LogMethodCall();
 
@@ -364,7 +431,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int GetBitmapValue(uint dwFieldID, out IntPtr phbmp)
+        int ICredentialProviderCredential.GetBitmapValue(uint dwFieldID, out IntPtr phbmp)
         {
             GlobalLogger.LogMethodCall();
 
@@ -415,7 +482,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int GetCheckboxValue(uint dwFieldID, out int pbChecked, out string ppszLabel)
+        int ICredentialProviderCredential.GetCheckboxValue(uint dwFieldID, out int pbChecked, out string ppszLabel)
         {
             GlobalLogger.LogMethodCall();
 
@@ -470,7 +537,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int GetSubmitButtonValue(uint dwFieldID, out uint pdwAdjacentTo)
+        int ICredentialProviderCredential.GetSubmitButtonValue(uint dwFieldID, out uint pdwAdjacentTo)
         {
             GlobalLogger.LogMethodCall();
 
@@ -532,7 +599,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int GetComboBoxValueCount(uint dwFieldID, out uint pcItems, out uint pdwSelectedItem)
+        int ICredentialProviderCredential.GetComboBoxValueCount(uint dwFieldID, out uint pcItems, out uint pdwSelectedItem)
         {
             GlobalLogger.LogMethodCall();
 
@@ -567,7 +634,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int GetComboBoxValueAt(uint dwFieldID, uint dwItem, out string ppszItem)
+        int ICredentialProviderCredential.GetComboBoxValueAt(uint dwFieldID, uint dwItem, out string ppszItem)
         {
             GlobalLogger.LogMethodCall();
 
@@ -600,7 +667,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int SetStringValue(uint dwFieldID, string psz)
+        int ICredentialProviderCredential.SetStringValue(uint dwFieldID, string psz)
         {
             GlobalLogger.LogMethodCall();
 
@@ -649,7 +716,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int SetCheckboxValue(uint dwFieldID, int bChecked)
+        int ICredentialProviderCredential.SetCheckboxValue(uint dwFieldID, int bChecked)
         {
             GlobalLogger.LogMethodCall();
 
@@ -694,7 +761,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int SetComboBoxSelectedValue(uint dwFieldID, uint dwSelectedItem)
+        int ICredentialProviderCredential.SetComboBoxSelectedValue(uint dwFieldID, uint dwSelectedItem)
         {
             GlobalLogger.LogMethodCall();
 
@@ -723,7 +790,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int CommandLinkClicked(uint dwFieldID)
+        int ICredentialProviderCredential.CommandLinkClicked(uint dwFieldID)
         {
             GlobalLogger.LogMethodCall();
 
@@ -768,7 +835,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int GetSerialization(out _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE pcpgsr, out _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION pcpcs, out string ppszOptionalStatusText, out _CREDENTIAL_PROVIDER_STATUS_ICON pcpsiOptionalStatusIcon)
+        int ICredentialProviderCredential.GetSerialization(out _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE pcpgsr, out _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION pcpcs, out string ppszOptionalStatusText, out _CREDENTIAL_PROVIDER_STATUS_ICON pcpsiOptionalStatusIcon)
         {
             GlobalLogger.LogMethodCall();
 
@@ -778,52 +845,21 @@ namespace JamieHighfield.CredentialProvider.Credentials
             {
                 try
                 {
+                    LogonResponse logonResponse = ProcessLogon();
+
+                    if (logonResponse == null || logonResponse?.ErrorMessage != null)
+                    {
+                        pcpgsr = _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE.CPGSR_NO_CREDENTIAL_NOT_FINISHED;
+                        pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION() { ulAuthenticationPackage = 1234 };
+                        ppszOptionalStatusText = (logonResponse?.ErrorMessage ?? "An unknown error occurred. Please contact your system administrator.");
+                        pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_ERROR;
+
+                        return HRESULT.S_OK;
+                    }
+
                     if (WindowsLogon == true)
                     {
-                        if (this is IConnectableCredentialProviderCredential)
-                        {
-                            if (LogonResponse == null || LogonResponse?.Successful == false)
-                            {
-                                GlobalLogger.Log(LogLevels.Warning, "The logon response from the logon sequence pipeline was either null or unsuccessful.");
-
-                                pcpgsr = _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE.CPGSR_NO_CREDENTIAL_NOT_FINISHED;
-                                pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION() { ulAuthenticationPackage = 1234 };
-                                ppszOptionalStatusText = (LogonResponse.ErrorMessage ?? "Invalid logon sequence.");
-                                pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_ERROR;
-
-                                return HRESULT.S_OK;
-                            }
-                        }
-                        else
-                        {
-                            if (LogonSequencePipeline == null)
-                            {
-                                GlobalLogger.Log(LogLevels.Warning, "The logon sequence pipeline was null.");
-
-                                pcpgsr = _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE.CPGSR_NO_CREDENTIAL_NOT_FINISHED;
-                                pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION() { ulAuthenticationPackage = 1234 };
-                                ppszOptionalStatusText = (LogonResponse.ErrorMessage ?? "Invalid logon sequence.");
-                                pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_ERROR;
-
-                                return HRESULT.S_OK;
-                            }
-
-                            LogonResponse = LogonSequencePipeline?.ProcessSequencePipeline(new LogonPackage(CredentialProvider.CurrentUsageScenario, this));
-
-                            if (LogonResponse == null || LogonResponse?.Successful == false)
-                            {
-                                GlobalLogger.Log(LogLevels.Warning, "The logon response from the logon sequence pipeline was either null or unsuccessful.");
-
-                                pcpgsr = _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE.CPGSR_NO_CREDENTIAL_NOT_FINISHED;
-                                pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION() { ulAuthenticationPackage = 1234 };
-                                ppszOptionalStatusText = (LogonResponse.ErrorMessage ?? "Invalid logon sequence.");
-                                pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_ERROR;
-
-                                return HRESULT.S_OK;
-                            }
-                        }
-
-                        WindowsLogonPackage windowsLogonPackage = LogonResponse.WindowsLogonPackage;
+                        WindowsLogonPackage windowsLogonPackage = logonResponse.WindowsLogonPackage;
 
                         pcpgsr = _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE.CPGSR_RETURN_CREDENTIAL_FINISHED;
                         pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION();
@@ -844,7 +880,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
                                 ppszOptionalStatusText = "Welcome";
                                 pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_SUCCESS;
 
-                                pcpcs.clsidCredentialProvider = CredentialProvider.Guid;
+                                pcpcs.clsidCredentialProvider = CredentialProvider.ComGuid;
                                 pcpcs.rgbSerialization = credentialBuffer;
                                 pcpcs.cbSerialization = (uint)credentialSize;
 
@@ -856,7 +892,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                             pcpgsr = _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE.CPGSR_NO_CREDENTIAL_NOT_FINISHED;
                             pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION() { ulAuthenticationPackage = 1234 };
-                            ppszOptionalStatusText = "Invalid logon sequence.";
+                            ppszOptionalStatusText = "An unknown error occurred. Please contact your system administrator.";
                             pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_ERROR;
 
                             return HRESULT.E_FAIL;
@@ -894,7 +930,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int ReportResult(int ntsStatus, int ntsSubstatus, out string ppszOptionalStatusText, out _CREDENTIAL_PROVIDER_STATUS_ICON pcpsiOptionalStatusIcon)
+        int ICredentialProviderCredential.ReportResult(int ntsStatus, int ntsSubstatus, out string ppszOptionalStatusText, out _CREDENTIAL_PROVIDER_STATUS_ICON pcpsiOptionalStatusIcon)
         {
             GlobalLogger.LogMethodCall();
 
@@ -913,108 +949,6 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
         #endregion
 
-        #region ICredentialProviderCredential2
-
-        /// <summary>
-        /// Statutory method from <see cref="ICredentialProviderCredential2"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential2 for more information.
-        /// </summary>
-        /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int GetUserSid(out string sid)
-        {
-            GlobalLogger.LogMethodCall();
-
-            if (UnderlyingCredential != null)
-            {
-                if (UnderlyingCredential is ICredentialProviderCredential2)
-                {
-                    int result = HRESULT.E_FAIL;
-
-                    result = ((ICredentialProviderCredential2)UnderlyingCredential).GetUserSid(out sid);
-
-                    if (result != HRESULT.S_OK)
-                    {
-                        sid = string.Empty;
-
-                        return result;
-                    }
-                }
-                else
-                {
-                    sid = string.Empty;
-                }
-            }
-            else
-            {
-                sid = string.Empty;
-            }
-
-            return HRESULT.S_OK;
-        }
-
-        #endregion
-
-        #region IConnectableCredentialProviderCredential
-
-        /// <summary>
-        /// Statutory method from <see cref="IConnectableCredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-iconnectablecredentialprovidercredential for more information.
-        /// </summary>
-        /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int Connect(IQueryContinueWithStatus pqcws)
-        {
-            GlobalLogger.LogMethodCall();
-
-            Connecting?.Invoke(this, new ConnectingEventArgs(pqcws));
-
-            if (UnderlyingCredential != null)
-            {
-                if (UnderlyingCredential is IConnectableCredentialProviderCredential)
-                {
-                    int result = ((IConnectableCredentialProviderCredential)UnderlyingCredential).Connect(pqcws);
-
-                    if (result != HRESULT.S_OK)
-                    {
-                        return result;
-                    }
-                }
-            }
-
-            Connected?.Invoke(this, new ConnectedEventArgs(pqcws));
-
-            return HRESULT.S_OK;
-        }
-
-        /// <summary>
-        /// Statutory method from <see cref="IConnectableCredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-iconnectablecredentialprovidercredential for more information.
-        /// </summary>
-        /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        public int Disconnect()
-        {
-            GlobalLogger.LogMethodCall();
-
-            Disconnecting?.Invoke(this, new EventArgs());
-
-            if (UnderlyingCredential != null)
-            {
-                if (UnderlyingCredential is IConnectableCredentialProviderCredential)
-                {
-                    int result = HRESULT.E_FAIL;
-
-                    result = ((IConnectableCredentialProviderCredential)UnderlyingCredential).Disconnect();
-
-                    if (result != HRESULT.S_OK)
-                    {
-                        return result;
-                    }
-                }
-            }
-
-            Disconnected?.Invoke(this, new EventArgs());
-
-            return HRESULT.S_OK;
-        }
-
-        #endregion
-
         #endregion
 
         #endregion
@@ -1025,16 +959,6 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// This event is raised after this credential is selected.
         /// </summary>
         public event EventHandler<LoadedEventArgs> Loaded;
-
-        /// <summary>
-        /// This event is raised before any connect operation is started when the user submits the credentials (only pertinent to when this credential is wrapping another credential). This credential will need to implement the <see cref="IConnectableCredential"/> interface.
-        /// </summary>
-        public event EventHandler<ConnectingEventArgs> Connecting;
-
-        /// <summary>
-        /// This event is raised after any connect operation is started when the user submits the credentials (only pertinent to when this credential is wrapping another credential). This credential will need to implement the <see cref="IConnectableCredential"/> interface. When this credential is not wrapping another credential, this event should not be used, although will still be raised. Instead, you should use the <see cref="Connecting"/> event.
-        /// </summary>
-        public event EventHandler<ConnectedEventArgs> Connected;
 
         /// <summary>
         /// This event is raised before any disconnect operation is started (only pertinent to when this credential is wrapping another credential). This credential will need to implement the <see cref="IConnectableCredential"/> interface.
