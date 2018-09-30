@@ -29,7 +29,7 @@ namespace JamieHighfield.CredentialProvider.Logon
 
         #region Methods
 
-        internal abstract LogonResponse ProcessSequence(LogonPackage logonPackage, WindowsLogonPackage windowsLogonPackage);
+        internal abstract LogonResponse ProcessSequence(IncomingLogonPackage logonPackage, WindowsLogonPackage windowsLogonPackage);
         
         #endregion
     }

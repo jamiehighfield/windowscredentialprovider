@@ -6,10 +6,10 @@ using System.Windows.Forms;
 
 namespace JamieHighfield.CredentialProvider.Sample.Providers
 {
-    [ComVisible(true)]
-    [Guid("5A09A8E2-2138-4F7C-BF74-3AD9DD710123")]
-    [ClassInterface(ClassInterfaceType.None)]
-    [ProgId("WrappedCredentialProviderSample")]
+    //[ComVisible(true)]
+    //[Guid("5A09A8E2-2138-4F7C-BF74-3AD9DD710123")]
+    //[ClassInterface(ClassInterfaceType.None)]
+    //[ProgId("WrappedCredentialProviderSample")]
     public sealed class WrappedCredentialProviderSample : CredentialProviderSetUserArrayBase
     {
         public WrappedCredentialProviderSample()
@@ -50,10 +50,7 @@ namespace JamieHighfield.CredentialProvider.Sample.Providers
 
         #region Methods
 
-        public override void AddControls(CredentialControlCollection controls)
-        {
 
-        }
 
         #endregion
     }

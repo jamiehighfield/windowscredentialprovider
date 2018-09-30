@@ -10,6 +10,7 @@
  */
 
 using JamieHighfield.CredentialProvider.Controls.Events;
+using JamieHighfield.CredentialProvider.Credentials;
 using JamieHighfield.CredentialProvider.Interop;
 using JamieHighfield.CredentialProvider.Providers;
 using System;
@@ -18,23 +19,9 @@ namespace JamieHighfield.CredentialProvider.Controls
 {
     public sealed class LabelControl : CredentialControlBase
     {
-        public LabelControl(LabelControlSizes size, string text)
-            : this(CredentialFieldVisibilities.SelectedCredential, size, text)
+        internal LabelControl()
+            : base(CredentialControlTypes.Label)
         { }
-
-        public LabelControl(CredentialFieldVisibilities visibility, LabelControlSizes size, string text)
-            : base(CredentialControlTypes.Label, visibility)
-        {
-            Size = size;
-            Text = text;
-        }
-
-        public LabelControl(Func<CredentialProviderUsageScenarios, CredentialFieldVisibilities> visibilityDelegate, LabelControlSizes size, string text)
-            : base(CredentialControlTypes.Label, visibilityDelegate)
-        {
-            Size = size;
-            Text = text;
-        }
 
         #region Variables
 
@@ -47,7 +34,7 @@ namespace JamieHighfield.CredentialProvider.Controls
         /// <summary>
         /// Gets the size of either <see cref="LabelControlSizes.Small"/> or <see cref="LabelControlSizes.Large"/> for this <see cref="LabelControl"/>.
         /// </summary>
-        public LabelControlSizes Size { get; private set; }
+        public LabelControlSizes Size { get; internal set; }
 
         /// <summary>
         /// Gets or sets the text for this <see cref="LabelControl"/>.
@@ -62,12 +49,12 @@ namespace JamieHighfield.CredentialProvider.Controls
             {
                 _text = value;
 
-                TextChanged?.Invoke(this, new LabelControlTextChangedEventArgs(this));
+                TextChanged?.Invoke(this, new LabelControlTextChangedEventArgs(Credential, this));
 
-                EventCallback?.Invoke((credential, fieldId) =>
+                if (Credential != null)
                 {
-                    //credential.Events.SetFieldString(credential, (uint)fieldId, Text);
-                });
+                    Credential.Events.SetFieldString(Credential, (uint)Field.FieldId, Text);
+                }
             }
         }
 
@@ -91,7 +78,17 @@ namespace JamieHighfield.CredentialProvider.Controls
         {
             _text = text;
 
-            TextChanged?.Invoke(this, new LabelControlTextChangedEventArgs(this));
+            TextChanged?.Invoke(this, new LabelControlTextChangedEventArgs(Credential, this));
+        }
+
+        internal override CredentialControlBase Clone()
+        {
+            return new LabelControl()
+            {
+                Visibility = Visibility,
+                Size = Size,
+                Text = Text
+            };
         }
 
         #endregion

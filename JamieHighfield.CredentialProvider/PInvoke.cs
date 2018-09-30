@@ -54,25 +54,18 @@ namespace JamieHighfield.CredentialProvider
         }
 
         [DllImport("credui.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        public static extern bool CredPackAuthenticationBuffer(
-            int dwFlags,
-            string pszUserName,
-            string pszPassword,
-            IntPtr pPackedCredentials,
-            ref int pcbPackedCredentials);
+        public static extern bool CredPackAuthenticationBuffer(int dwFlags, string pszUserName, string pszPassword, IntPtr pPackedCredentials, ref int pcbPackedCredentials);
 
         [DllImport("secur32.dll", SetLastError = false)]
-        public static extern uint LsaConnectUntrusted([Out] out IntPtr lsaHandle);
+        internal static extern uint LsaConnectUntrusted([Out] out IntPtr lsaHandle);
 
         [DllImport("secur32.dll", SetLastError = false)]
-        public static extern uint LsaLookupAuthenticationPackage([In] IntPtr lsaHandle, [In] ref LSA_STRING packageName, [Out] out UInt32 authenticationPackage);
+        internal static extern uint LsaLookupAuthenticationPackage([In] IntPtr lsaHandle, [In] ref LSA_STRING packageName, [Out] out UInt32 authenticationPackage);
 
         [DllImport("secur32.dll", SetLastError = false)]
-        public static extern uint LsaDeregisterLogonProcess([In] IntPtr lsaHandle);
+        internal static extern uint LsaDeregisterLogonProcess([In] IntPtr lsaHandle);
 
         [DllImport("ole32.dll", EntryPoint = "CoCreateInstance", CallingConvention = CallingConvention.StdCall)]
-        static extern UInt32 CoCreateInstance([In, MarshalAs(UnmanagedType.LPStruct)] Guid rclsid,
-        IntPtr pUnkOuter, UInt32 dwClsContext, [In, MarshalAs(UnmanagedType.LPStruct)] Guid riid,
-        [MarshalAs(UnmanagedType.IUnknown)] out object rReturnedComObject);
+        internal static extern UInt32 CoCreateInstance([In, MarshalAs(UnmanagedType.LPStruct)] Guid rclsid, IntPtr pUnkOuter, UInt32 dwClsContext, [In, MarshalAs(UnmanagedType.LPStruct)] Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out object rReturnedComObject);
     }
 }

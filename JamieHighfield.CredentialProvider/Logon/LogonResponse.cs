@@ -15,15 +15,15 @@ namespace JamieHighfield.CredentialProvider.Logon
 {
     public sealed class LogonResponse
     {
-        public LogonResponse(LogonPackage logonPackage, WindowsLogonPackage windowsLogonPackage)
+        public LogonResponse(IncomingLogonPackage logonPackage, WindowsLogonPackage windowsLogonPackage)
         {
             LogonPackage = logonPackage ?? throw new ArgumentNullException(nameof(logonPackage));
             WindowsLogonPackage = windowsLogonPackage ?? throw new ArgumentNullException(nameof(windowsLogonPackage));
         }
 
-        public LogonResponse(LogonResponseErrorTypes errorType, string errorMessage)
+        public LogonResponse(ErrorMessageIcons errorMessageIcon, string errorMessage)
         {
-            ErrorType = errorType;
+            ErrorMessageIcon = errorMessageIcon;
             ErrorMessage = errorMessage ?? throw new ArgumentNullException(nameof(errorMessage));
         }
 
@@ -35,12 +35,18 @@ namespace JamieHighfield.CredentialProvider.Logon
 
         #region Properties
 
-        public LogonPackage LogonPackage { get; private set; }
+        public IncomingLogonPackage LogonPackage { get; private set; }
 
         public WindowsLogonPackage WindowsLogonPackage { get; private set; }
 
-        public LogonResponseErrorTypes ErrorType { get; private set; }
+        /// <summary>
+        /// Gets the <see cref="ErrorMessageIcons"/> to be displayed alongside the <see cref="ErrorMessage"/>. This property will be ignored in all usage scenarios in Windows 8/Windows Server 2012 and above.
+        /// </summary>
+        public ErrorMessageIcons ErrorMessageIcon { get; private set; }
 
+        /// <summary>
+        /// Gets the error message to be displayed by Windows.
+        /// </summary>
         public string ErrorMessage { get; private set; }
 
         #endregion

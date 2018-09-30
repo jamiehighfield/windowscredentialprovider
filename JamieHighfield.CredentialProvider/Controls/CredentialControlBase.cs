@@ -19,19 +19,8 @@ namespace JamieHighfield.CredentialProvider.Controls
     public abstract class CredentialControlBase
     {
         internal CredentialControlBase(CredentialControlTypes type)
-            : this(type, CredentialFieldVisibilities.SelectedCredential)
-        { }
-
-        internal CredentialControlBase(CredentialControlTypes type, CredentialFieldVisibilities visibility)
         {
             Type = type;
-            Visibility = visibility;
-        }
-
-        internal CredentialControlBase(CredentialControlTypes type, Func<CredentialProviderUsageScenarios, CredentialFieldVisibilities> visibilityDelegate)
-        {
-            Type = type;
-            VisibilityDelegate = visibilityDelegate;
         }
 
         #region Variables
@@ -42,15 +31,17 @@ namespace JamieHighfield.CredentialProvider.Controls
 
         #region Properties
 
+        internal CredentialField Field { get; set; }
+
         internal CredentialProviderBase CredentialProvider { get; set; }
+
+        internal CredentialBase Credential { get; set; }
 
         internal Action<Action<CredentialBase, int>> EventCallback { get; set; }
 
-        internal CredentialControlTypes Type { get; private set; }
-        
-        private CredentialFieldVisibilities Visibility { get; set; }
+        internal CredentialControlTypes Type { get; set; }
 
-        private Func<CredentialProviderUsageScenarios, CredentialFieldVisibilities> VisibilityDelegate { get; set; }
+        internal CredentialFieldVisibilities Visibility { get; set; }
 
         #endregion
 
@@ -75,11 +66,6 @@ namespace JamieHighfield.CredentialProvider.Controls
         {
             _CREDENTIAL_PROVIDER_FIELD_STATE visibility = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_HIDDEN;
 
-            if (VisibilityDelegate != null)
-            {
-                Visibility = VisibilityDelegate.Invoke(CredentialProvider.CurrentUsageScenario);
-            }
-
             if (Visibility.HasFlag(CredentialFieldVisibilities.SelectedCredential) == true)
             {
                 if (Visibility.HasFlag(CredentialFieldVisibilities.DeselectedCredential) == true)
@@ -98,6 +84,8 @@ namespace JamieHighfield.CredentialProvider.Controls
 
             return visibility;
         }
+
+        internal abstract CredentialControlBase Clone();
 
         #endregion
     }

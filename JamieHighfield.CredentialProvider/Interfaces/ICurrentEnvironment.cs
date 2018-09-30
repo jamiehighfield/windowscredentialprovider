@@ -1,6 +1,5 @@
 ﻿using JamieHighfield.CredentialProvider.Credentials;
 using JamieHighfield.CredentialProvider.Providers;
-using JamieHighfield.CredentialProvider.UI;
 
 namespace JamieHighfield.CredentialProvider.Interfaces
 {

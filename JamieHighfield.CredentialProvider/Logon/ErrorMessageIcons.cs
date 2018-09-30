@@ -3,7 +3,7 @@
     /// <summary>
     /// The error icon to be displayed when the processing of the logon has failed.
     /// </summary>
-    public enum LogonResponseErrorTypes
+    public enum ErrorMessageIcons
     {
         /// <summary>
         /// Information icon.

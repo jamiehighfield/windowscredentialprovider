@@ -9,12 +9,14 @@
  * 
  */
 
+using JamieHighfield.CredentialProvider.Credentials;
+
 namespace JamieHighfield.CredentialProvider.Controls.Events
 {
     public sealed class LinkControlClickedEventArgs : CredentialControlEventEventArgs<LinkControl>
     {
-        public LinkControlClickedEventArgs(LinkControl linkControl)
-            : base(linkControl)
+        public LinkControlClickedEventArgs(CredentialBase credential, LinkControl linkControl)
+            : base(credential, linkControl)
         { }
 
         #region Variables

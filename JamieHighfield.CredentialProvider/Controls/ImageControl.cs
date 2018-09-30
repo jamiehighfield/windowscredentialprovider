@@ -18,21 +18,9 @@ namespace JamieHighfield.CredentialProvider.Controls
 {
     public sealed class ImageControl : CredentialControlBase
     {
-        public ImageControl(Bitmap image)
+        internal ImageControl()
             : base(CredentialControlTypes.Image)
         { }
-
-        public ImageControl(CredentialFieldVisibilities visibility, Bitmap image)
-            : base(CredentialControlTypes.Image, visibility)
-        {
-            Image = image ?? throw new ArgumentNullException(nameof(image));
-        }
-
-        public ImageControl(Func<CredentialProviderUsageScenarios, CredentialFieldVisibilities> visibilityDelegate, Bitmap image)
-            : base(CredentialControlTypes.Image, visibilityDelegate)
-        {
-            Image = image ?? throw new ArgumentNullException(nameof(image));
-        }
 
         #region Variables
 
@@ -42,7 +30,7 @@ namespace JamieHighfield.CredentialProvider.Controls
 
         #region Properties
 
-        internal Bitmap Image { get; private set; }
+        public Bitmap Image { get; internal set; }
 
         #endregion
 
@@ -51,6 +39,15 @@ namespace JamieHighfield.CredentialProvider.Controls
         internal override _CREDENTIAL_PROVIDER_FIELD_TYPE GetNativeFieldType()
         {
             return _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_TILE_IMAGE;
+        }
+
+        internal override CredentialControlBase Clone()
+        {
+            return new ImageControl()
+            {
+                Image = Image,
+                Visibility = Visibility
+            };
         }
 
         #endregion

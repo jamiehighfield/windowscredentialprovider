@@ -44,7 +44,7 @@ namespace JamieHighfield.CredentialProvider.Logon
             Sequences.Add(sequence);
         }
 
-        internal LogonResponse ProcessSequencePipeline(LogonPackage logonPackage)
+        internal LogonResponse ProcessSequencePipeline(IncomingLogonPackage logonPackage)
         {
             if (logonPackage == null)
             {
@@ -53,7 +53,7 @@ namespace JamieHighfield.CredentialProvider.Logon
 
             LogonResponse currentLogonResponse = null;
 
-            LogonPackage currentLogonPackage = logonPackage;
+            IncomingLogonPackage currentLogonPackage = logonPackage;
 
             foreach (LogonSequenceBase sequence in Sequences)
             {

@@ -18,21 +18,9 @@ namespace JamieHighfield.CredentialProvider.Controls
 {
     public sealed class CheckBoxControl : LabelledCredentialControlBase
     {
-        public CheckBoxControl(string label, bool @checked)
-            : this(CredentialFieldVisibilities.SelectedCredential, label, @checked)
+        public CheckBoxControl()
+            : base(CredentialControlTypes.CheckBox)
         { }
-
-        public CheckBoxControl(CredentialFieldVisibilities visibility, string label, bool @checked)
-            : base(CredentialControlTypes.TextBox, label)
-        {
-            Checked = @checked;
-        }
-
-        public CheckBoxControl(Func<CredentialProviderUsageScenarios, CredentialFieldVisibilities> visibilityDelegate, string label, bool @checked)
-            : base(CredentialControlTypes.TextBox, visibilityDelegate, label)
-        {
-            Checked = @checked;
-        }
 
         #region Variables
 
@@ -51,6 +39,23 @@ namespace JamieHighfield.CredentialProvider.Controls
         internal override _CREDENTIAL_PROVIDER_FIELD_TYPE GetNativeFieldType()
         {
             return _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_CHECKBOX;
+        }
+
+        internal override CredentialControlBase Clone()
+        {
+            CheckBoxControl checkBoxControl = new CheckBoxControl()
+            {
+                Visibility = Visibility,
+                Label = Label,
+                Checked = Checked
+            };
+
+            if (CheckChanged != null)
+            {
+                checkBoxControl.CheckChanged += CheckChanged;
+            }
+
+            return checkBoxControl;
         }
 
         #endregion

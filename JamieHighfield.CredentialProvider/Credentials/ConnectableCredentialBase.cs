@@ -33,69 +33,75 @@ namespace JamieHighfield.CredentialProvider.Credentials
         #region Properties
 
         /// <summary>
-        /// Gets or sets the <see cref="Logon.LogonResponse"/> which is returned from the output of running the <see cref="LogonSequencePipeline"/>.
+        /// Gets or sets the <see cref="Logon.LogonResponse"/> which is returned from the output of running the <see cref="LogonSequencePipeline"/>. This property can be used as a link between the <see cref="ProcessConnection(Connection)"/> and <see cref="ProcessLogon"/> methods.
         /// </summary>
-        private LogonResponse LogonResponse { get; set; }
+        public LogonResponse LogonResponse { get; set; }
 
         /// <summary>
-        /// Gets or sets the <see cref="Credentials.ConnectableLogonResponse"/> which is returned from the output of running the <see cref="ProcessConnection(Connection)"/> method.
+        /// Gets or sets the <see cref="Credentials.Connection"/> which is used during the credential's connection phase.
         /// </summary>
-        private ConnectableLogonResponse ConnectableLogonResponse { get; set; }
+        private Connection Connection { get; set; }
 
         #endregion
 
         #region Methods
 
         /// <summary>
-        /// This method is called to get a <see cref="Logon.LogonResponse"/> containing a logon package that can be used to logon to Windows. By default, this method runs the <see cref="Logon.LogonSequencePipeline"/> within this credential and returns the <see cref="Logon.LogonResponse"/> from that.This method will be ignored if an underlying credential has been specified. This method can be overridden to provide different behaviour. 
+        /// This method is called to get a <see cref="Logon.LogonResponse"/> containing a logon package that can be used to logon to Windows. By default, this method runs the <see cref="LogonSequencePipeline"/> within this credential and returns the <see cref="Logon.LogonResponse"/> from that. This method will be ignored if an underlying credential has been specified or <see cref="CredentialBase.WindowsLogon"/> is set to true. This method can be overridden to provide different behaviour.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>The <see cref="Logon.LogonResponse"/> to be parsed to Windows for authentication.</returns>
         public override LogonResponse ProcessLogon()
         {
-            if (LogonSequencePipeline == null)
+            if (WindowsLogon == true)
             {
-                GlobalLogger.Log(LogLevels.Warning, "The default behaviour of this credential provider is to process a logon sequence pipeline. The provided logon sequence pipeline was either null or in the incorrect format.");
-
-                return new LogonResponse(LogonResponseErrorTypes.Error, "The default behaviour of this credential provider is to process a logon sequence pipeline. The provided logon sequence pipeline was either null or in the incorrect format. Please contact your system administrator.");
-            }
-            else
-            {
-                if (LogonResponse == null || LogonResponse?.ErrorMessage != null)
+                if (LogonSequencePipeline == null)
                 {
-                    GlobalLogger.Log(LogLevels.Warning, "The default behaviour of this credential provider is to process a logon sequence pipeline. The provided logon sequence pipeline returned either null or an object in the incorrect format."
-                        + Environment.NewLine
-                        + Environment.NewLine
-                        + "The provided error message was:"
-                        + Environment.NewLine
-                        + Environment.NewLine
-                        + LogonResponse.ErrorMessage);
-                }
+                    GlobalLogger.Log(LogLevels.Warning, "The default behaviour of this credential provider is to process a logon sequence pipeline. The provided logon sequence pipeline was either null or in the incorrect format.");
 
-                return LogonResponse;
+                    return new LogonResponse(ErrorMessageIcons.Error, "The default behaviour of this credential provider is to process a logon sequence pipeline. The provided logon sequence pipeline was either null or in the incorrect format. Please contact your system administrator.");
+                }
+                else
+                {
+                    if (LogonResponse == null || LogonResponse?.ErrorMessage != null)
+                    {
+                        GlobalLogger.Log(LogLevels.Warning, "The default behaviour of this credential provider is to process a logon sequence pipeline. The provided logon sequence pipeline returned either null or an object in the incorrect format."
+                            + Environment.NewLine
+                            + Environment.NewLine
+                            + "The provided error message was:"
+                            + Environment.NewLine
+                            + Environment.NewLine
+                            + LogonResponse.ErrorMessage);
+                    }
+
+                    return LogonResponse;
+                }
             }
+
+            return null;
         }
 
         /// <summary>
-        /// This method is called to before <see cref="ProcessLogon"/> is called and should be used to perform time consuming operations. This method can be overridden to provide different behaviour. 
+        /// This method is called to before <see cref="ProcessLogon"/> is called and should be used to perform time consuming operations. This method will be ignored if <see cref="CredentialBase.WindowsLogon"/> is set to true. This method can be overridden to provide different behaviour. 
         /// </summary>
         /// <param name="connection"></param>
         /// <returns></returns>
-        public virtual ConnectableLogonResponse ProcessConnection(Connection connection)
+        public virtual void ProcessConnection(Connection connection)
         {
-            if (LogonSequencePipeline == null)
+            if (WindowsLogon == true)
             {
-                GlobalLogger.Log(LogLevels.Warning, "The default behaviour of this credential provider is to process a logon sequence pipeline. The provided logon sequence pipeline was either null or in the incorrect format.");
+                if (LogonSequencePipeline == null)
+                {
+                    GlobalLogger.Log(LogLevels.Warning, "The default behaviour of this credential provider is to process a logon sequence pipeline. The provided logon sequence pipeline was either null or in the incorrect format.");
 
-                connection.Cancel();
-
-                return new ConnectableLogonResponse("The default behaviour of this credential provider is to process a logon sequence pipeline. The provided logon sequence pipeline was either null or in the incorrect format. Please contact your system administrator.");
+                    connection.Cancel(ErrorMessageIcons.Error, "This credential provider is not currently accepting credentials. Please contact your system administrator.");
+                }
+                else
+                {
+                    LogonResponse = LogonSequencePipeline.ProcessSequencePipeline(new IncomingLogonPackage(this, this));
+                }
             }
-            else
-            {
-                LogonResponse = LogonSequencePipeline.ProcessSequencePipeline(new LogonPackage(this));
 
-                return new ConnectableLogonResponse();
-            }
+            return;
         }
 
         #region Credential Provider Interface Methods
@@ -265,7 +271,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
             Connection connection = new Connection(pqcws);
 
-            ConnectableLogonResponse = ProcessConnection(connection);
+            ProcessConnection(connection);
 
             if (connection.Cancelled == false)
             {

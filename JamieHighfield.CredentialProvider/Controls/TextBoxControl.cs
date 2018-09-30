@@ -10,7 +10,9 @@
  */
 
 using JamieHighfield.CredentialProvider.Controls.Events;
+using JamieHighfield.CredentialProvider.Credentials;
 using JamieHighfield.CredentialProvider.Interop;
+using JamieHighfield.CredentialProvider.Logging;
 using JamieHighfield.CredentialProvider.Providers;
 using System;
 
@@ -18,36 +20,10 @@ namespace JamieHighfield.CredentialProvider.Controls
 {
     public sealed class TextBoxControl : LabelledCredentialControlBase
     {
-        public TextBoxControl(string label, bool password)
-            : this(CredentialFieldVisibilities.SelectedCredential, label, password)
+        internal TextBoxControl()
+            : base(CredentialControlTypes.TextBox)
         { }
-
-        public TextBoxControl(CredentialFieldVisibilities visibility, string label, bool password)
-            : this(visibility, label, password, string.Empty)
-        { }
-
-        public TextBoxControl(Func<CredentialProviderUsageScenarios, CredentialFieldVisibilities> visibilityDelegate, string label, bool password)
-            : this(visibilityDelegate, label, password, string.Empty)
-        { }
-
-        public TextBoxControl(string label, bool password, string text)
-            : this(CredentialFieldVisibilities.SelectedCredential, label, false, text)
-        { }
-
-        public TextBoxControl(CredentialFieldVisibilities visibility, string label, bool password, string text)
-            : base(CredentialControlTypes.TextBox, visibility, label)
-        {
-            Password = password;
-            Text = text;
-        }
-
-        public TextBoxControl(Func<CredentialProviderUsageScenarios, CredentialFieldVisibilities> visibilityDelegate, string label, bool password, string text)
-            : base(CredentialControlTypes.TextBox, visibilityDelegate, label)
-        {
-            Password = password;
-            Text = text;
-        }
-
+        
         #region Variables
 
         private string _text;
@@ -69,19 +45,19 @@ namespace JamieHighfield.CredentialProvider.Controls
             {
                 _text = value;
 
-                TextChanged?.Invoke(this, new TextBoxControlTextChangedEventArgs(this));
+                TextChanged?.Invoke(this, new TextBoxControlTextChangedEventArgs(Credential, this));
 
-                EventCallback?.Invoke((credential, fieldId) =>
+                if (Credential != null)
                 {
-                    //credential.Events.SetFieldString(credential, (uint)fieldId, Text);
-                });
+                    Credential.Events.SetFieldString(Credential, (uint)Field.FieldId, Text);
+                }
             }
         }
 
         /// <summary>
         /// Gets whether this <see cref="TextBoxControl"/> should use a password character mark.
         /// </summary>
-        public bool Password { get; private set; }
+        public bool Password { get; internal set; }
 
         #endregion
 
@@ -103,7 +79,18 @@ namespace JamieHighfield.CredentialProvider.Controls
         {
             _text = text;
 
-            TextChanged?.Invoke(this, new TextBoxControlTextChangedEventArgs(this));
+            TextChanged?.Invoke(this, new TextBoxControlTextChangedEventArgs(Credential, this));
+        }
+
+        internal override CredentialControlBase Clone()
+        {
+            return new TextBoxControl()
+            {
+                Visibility = Visibility,
+                Label = Label,
+                Password = Password,
+                Text = Text
+            };
         }
 
         #endregion

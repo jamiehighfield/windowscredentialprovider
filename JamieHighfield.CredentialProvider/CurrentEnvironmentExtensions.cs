@@ -34,6 +34,16 @@ namespace JamieHighfield.CredentialProvider
             return environment.SupportedUsageScenarios.HasFlag(environment.CurrentUsageScenario);
         }
 
+        /// <summary>
+        /// Gets the current operating system the credential provider is running under.
+        /// </summary>
+        /// <param name="environment">This interface is implemented by <see cref="CredentialProviderBase"/> and <see cref="CredentialBase"/> classes; used to parse selected properties to delegates. When used as an extension method, an argument for this parameter is automatically parsed.</param>
+        /// <returns>The current operating system the credential provider is running under.</returns>
+        public static OperatingSystem GetCurrentOperatingSystem(this ICurrentEnvironment environment)
+        {
+            return Environment.OSVersion;
+        }
+
         #endregion
     }
 }

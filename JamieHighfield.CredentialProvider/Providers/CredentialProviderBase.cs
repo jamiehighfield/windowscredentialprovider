@@ -15,8 +15,8 @@ using JamieHighfield.CredentialProvider.Interfaces;
 using JamieHighfield.CredentialProvider.Interop;
 using JamieHighfield.CredentialProvider.Logging;
 using JamieHighfield.CredentialProvider.Providers.Exceptions;
-using JamieHighfield.CredentialProvider.UI;
 using System;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -158,7 +158,7 @@ namespace JamieHighfield.CredentialProvider.Providers
         /// </summary>
         internal CredentialCollection Credentials { get; private set; }
 
-        internal CredentialControlCollection Controls { get; private set; }
+        public ReadOnlyCredentialControlCollection Controls { get; private set; }
 
         #endregion
 
@@ -315,14 +315,14 @@ namespace JamieHighfield.CredentialProvider.Providers
                         break;
                     }
             }
-
+            
             supportedUsageScenario = this.IsCurrentUsageScenarioSupported();
 
             if (supportedUsageScenario == false)
             {
                 return HRESULT.E_NOTIMPL;
             }
-
+            
             CredentialCollection credentials = new CredentialCollection(this);
 
             CredentialsDelegate?.Invoke(credentials);
@@ -337,7 +337,45 @@ namespace JamieHighfield.CredentialProvider.Providers
 
             AddControls(controls);
 
-            Controls = controls;
+            Controls = new ReadOnlyCredentialControlCollection(controls);
+
+            foreach (CredentialBase credential in Credentials)
+            {
+                credential.Controls = new ReadOnlyCredentialControlCollection(Controls.Select((control) => control.Clone()).ToList(), credential);
+
+                CredentialFieldCollection fields = new CredentialFieldCollection();
+
+                int currentFieldId = 0;
+
+                if (UnderlyingCredentialProvider != null)
+                {
+                    int result = HRESULT.E_FAIL;
+
+                    result = UnderlyingCredentialProvider.GetFieldDescriptorCount(out uint count);
+
+                    if (result != HRESULT.S_OK)
+                    {
+                        credential.Fields = new CredentialFieldCollection();
+
+                        return result;
+                    }
+
+                    currentFieldId = (int)count;
+                }
+
+                foreach (CredentialControlBase control in credential.Controls)
+                {
+                    CredentialField field = new CredentialField(control, currentFieldId);
+
+                    control.Field = field;
+
+                    fields.Add(field);
+
+                    currentFieldId += 1;
+                }
+
+                credential.Fields = fields;
+            }
 
             return HRESULT.S_OK;
         }
@@ -577,6 +615,25 @@ namespace JamieHighfield.CredentialProvider.Providers
 
                     wrappedCredential.CredentialProvider = this;
                     wrappedCredential.UnderlyingCredential = credential;
+
+                    wrappedCredential.Controls = new ReadOnlyCredentialControlCollection(Controls.Select((control) => control.Clone()).ToList(), wrappedCredential);
+
+                    CredentialFieldCollection fields = new CredentialFieldCollection();
+
+                    int currentFieldId = (int)count;
+
+                    foreach (CredentialControlBase control in wrappedCredential.Controls)
+                    {
+                        CredentialField field = new CredentialField(control, currentFieldId);
+
+                        control.Field = field;
+
+                        fields.Add(field);
+
+                        currentFieldId += 1;
+                    }
+
+                    wrappedCredential.Fields = fields;
 
                     ppcpc = wrappedCredential;
 

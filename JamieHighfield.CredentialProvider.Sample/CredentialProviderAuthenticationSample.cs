@@ -33,25 +33,30 @@ namespace JamieHighfield.CredentialProvider.Sample
 
         #region Methods
 
-        public override LogonResponse Authenticate(LogonPackage logonPackage, WindowsLogonPackage windowsLogonPackage)
+        public override LogonResponse Authenticate(IncomingLogonPackage incomingLogonPackage, WindowsLogonPackage windowsLogonPackage)
         {
             try
             {
-                string username = "jamie";// ((CredentialSample)logonPackage.Credential).Username;
+
+
+                //string username = incomingLogonPackage.Credential.;// ((CredentialSample)logonPackage.Credential).Username;
                 //SecureString password = ((CredentialSample)logonPackage.Credential).Password;
                 string domain = Environment.MachineName;// ((CredentialSample)logonPackage.Credential).Domain;
 
                 using (PrincipalContext principalContext = new PrincipalContext(ContextType.Machine))
                 {
-                    if (principalContext.ValidateCredentials(username, (new NetworkCredential(string.Empty, "password")).Password) == true)
+                    if (principalContext.ValidateCredentials("jamie", (new NetworkCredential(string.Empty, "password")).Password) == true)
                     {
-                        return new LogonResponse(logonPackage, new WindowsLogonPackage(username, "password", domain));
+                        return new LogonResponse(incomingLogonPackage, new WindowsLogonPackage("jamie", "password", domain));
                     }
                 }
             }
-            catch { }
+            catch
+            {
+                return new LogonResponse(ErrorMessageIcons.Error, "An unknown error occurred. Please contact your system administrator.");
+            }
 
-            return new LogonResponse(LogonResponseErrorTypes.Error, "The username or password entered was incorrect.");
+            return new LogonResponse(ErrorMessageIcons.Error, "The username or password entered was incorrect.");
         }
         
         #endregion

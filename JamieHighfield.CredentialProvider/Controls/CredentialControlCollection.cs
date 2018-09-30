@@ -14,6 +14,7 @@ using JamieHighfield.CredentialProvider.Credentials;
 using JamieHighfield.CredentialProvider.Providers;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace JamieHighfield.CredentialProvider
 {
@@ -32,7 +33,7 @@ namespace JamieHighfield.CredentialProvider
 
         #region Properties
 
-        private CredentialProviderBase CredentialProvider { get; set; }
+        internal CredentialProviderBase CredentialProvider { get; }
 
         #endregion
 

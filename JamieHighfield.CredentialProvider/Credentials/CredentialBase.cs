@@ -11,15 +11,13 @@
 
 using JamieHighfield.CredentialProvider.Controls;
 using JamieHighfield.CredentialProvider.Controls.Events;
-using JamieHighfield.CredentialProvider.Credentials.Events;
 using JamieHighfield.CredentialProvider.Interfaces;
 using JamieHighfield.CredentialProvider.Interop;
 using JamieHighfield.CredentialProvider.Logging;
 using JamieHighfield.CredentialProvider.Logon;
 using JamieHighfield.CredentialProvider.Providers;
-using JamieHighfield.CredentialProvider.UI;
+using JamieHighfield.CredentialProvider.WindowsAuthentication;
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
@@ -45,13 +43,6 @@ namespace JamieHighfield.CredentialProvider.Credentials
         {
             LogonSequencePipeline = logonSequencePipeline;
         }
-
-        #region Platform Invocation
-
-        [DllImport("credui.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern bool CredPackAuthenticationBuffer(int dwFlags, string pszUserName, string pszPassword, IntPtr pPackedCredentials, ref int pcbPackedCredentials);
-
-        #endregion
 
         #region Variables
 
@@ -80,8 +71,6 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
         #endregion
 
-        #region Credential Configuration
-
         /// <summary>
         /// Gets or sets the <see cref="CredentialProviderBase"/> that enumerates this credential.
         /// </summary>
@@ -93,104 +82,83 @@ namespace JamieHighfield.CredentialProvider.Credentials
         internal ICredentialProviderCredential UnderlyingCredential { get; set; }
 
         /// <summary>
-        /// Gets or sets the <see cref="LogonSequencePipelineBase"/> instance used during the logon sequence.
+        /// Gets a read-only collection of <see cref="CredentialControlBase"/>. The <see cref="CredentialControlBase"/> enumerated here are specific to this credential, and any changes here won't be reflected in any other credentials.
         /// </summary>
-        internal LogonSequencePipelineBase LogonSequencePipeline { get; private set; }
+        public ReadOnlyCredentialControlCollection Controls { get; internal set; }
+
+        /// <summary>
+        /// Gets the <see cref="LogonSequencePipelineBase"/> used during the logon sequence to authenticate, authorise and manipulate incoming credentials.
+        /// </summary>
+        public LogonSequencePipelineBase LogonSequencePipeline { get; }
         
         /// <summary>
-        /// Gets whether the connect operation was cancelled or cancelled by the user clicking the 'Cancel' button.
+        /// Gets or sets whether this credential should forward an authentication package to Windows. This property will be ignored if this credential has an underlying credential.
         /// </summary>
-        private bool ConnectCancelled { get; set; }
-
-        /// <summary>
-        /// Gets the error message to be displayed if the connect operation was cancelled.
-        /// </summary>
-        private string ConnectCancelledMessage { get; set; }
-
-        /// <summary>
-        /// Gets or sets whether this credential should forward an authentication package to Windows. This property will be ignored if this credential forms part of a wrapped credential.
-        /// </summary>
-        internal bool WindowsLogon { get; set; }
-
-        #endregion
-
+        public bool WindowsLogon { get; set; }
+        
         /// <summary>
         /// Gets or sets the <see cref="EventsWrapper"/> that is used to wrap an <see cref="ICredentialProviderCredentialEvents"/>. This allows for the correct enumerated credential to be used when raising events (only pertinent to when this credential is wrapping another credential).
         /// </summary>
-        private EventsWrapper Events { get; set; }
+        internal EventsWrapper Events { get; private set; }
 
         /// <summary>
         /// Gets a <see cref="CredentialFieldCollection"/> of <see cref="CredentialField"/> representing the raw field data with the associated control. This will only include managed fields; those from wrapped credentials will not be included, although, the field ID will appear as though all fields are included.
         /// </summary>
-        internal CredentialFieldCollection Fields
-        {
-            get
-            {
-                return CredentialProvider.Fields;
-            }
-        }
-        
+        internal CredentialFieldCollection Fields { get; set; }
+
         #endregion
 
         #region Methods
 
         /// <summary>
-        /// This method is called to get a <see cref="Logon.LogonResponse"/> containing a logon package that can be used to logon to Windows. By default, this method runs the <see cref="Logon.LogonSequencePipeline"/> within this credential and returns the <see cref="Logon.LogonResponse"/> from that.This method will be ignored if an underlying credential has been specified. This method can be overridden to provide different behaviour. 
+        /// This method is called during the initialisation of the credential and should be used to manipulate <see cref="CredentialControlBase"/> objects parsed from the <see cref="CredentialProviderBase"/>.
         /// </summary>
-        /// <returns></returns>
+        public virtual void Initialise() { }
+
+        /// <summary>
+        /// This method is called after this credential is selected.
+        /// </summary>
+        public virtual void Loaded() { }
+
+        /// <summary>
+        /// This method is called before the <see cref="ProcessLogon"/> method is called when a logon is initiated. If <see cref="WindowsLogon"/> is set to true, <see cref="ProcessLogon"/> will not be called; instead, this is the only method that will be called.
+        /// </summary>
+        public virtual void BeforeLogon() { }
+
+        /// <summary>
+        /// This method is called to get a <see cref="LogonResponse"/> containing a logon package that can be used to logon to Windows. By default, this method runs the <see cref="Logon.LogonSequencePipeline"/> within this credential and returns the <see cref="LogonResponse"/> from that. This method will be ignored if an underlying credential has been specified or <see cref="WindowsLogon"/> is set to true. This method can be overridden to provide different behaviour.
+        /// </summary>
+        /// <returns>The <see cref="LogonResponse"/> to be parsed to Windows for authentication.</returns>
         public virtual LogonResponse ProcessLogon()
         {
-            if (LogonSequencePipeline == null)
+            if (WindowsLogon == true)
             {
-                GlobalLogger.Log(LogLevels.Warning, "The default behaviour of this credential provider is to process a logon sequence pipeline. The provided logon sequence pipeline was either null or in the incorrect format.");
+                if (LogonSequencePipeline == null)
+                {
+                    GlobalLogger.Log(LogLevels.Warning, "The default behaviour of this credential provider is to process a logon sequence pipeline. The provided logon sequence pipeline was either null or in the incorrect format.");
 
-                return new LogonResponse(LogonResponseErrorTypes.Error, "The default behaviour of this credential provider is to process a logon sequence pipeline. The provided logon sequence pipeline was either null or in the incorrect format. Please contact your system administrator.");
-            }
-            else
-            {
-                LogonResponse logonResponse = LogonSequencePipeline.ProcessSequencePipeline(new LogonPackage(this));
+                    return new LogonResponse(ErrorMessageIcons.Error, "The default behaviour of this credential provider is to process a logon sequence pipeline. The provided logon sequence pipeline was either null or in the incorrect format. Please contact your system administrator.");
+                }
 
-                if (logonResponse == null || logonResponse?.ErrorMessage != null)
+                LogonResponse logonResponse = LogonSequencePipeline.ProcessSequencePipeline(new IncomingLogonPackage(this, this));
+
+                GlobalLogger.Log(LogLevels.Information, "HERE");
+
+                if (logonResponse == null || logonResponse.ErrorMessage != null)
                 {
                     GlobalLogger.Log(LogLevels.Warning, "The default behaviour of this credential provider is to process a logon sequence pipeline. The provided logon sequence pipeline returned either null or an object in the incorrect format."
-                        + Environment.NewLine
-                        + Environment.NewLine
-                        + "The provided error message was:"
-                        + Environment.NewLine
-                        + Environment.NewLine
-                        + logonResponse.ErrorMessage);
+                                                        + Environment.NewLine
+                                                        + Environment.NewLine
+                                                        + "The provided error message was:"
+                                                        + Environment.NewLine
+                                                        + Environment.NewLine
+                                                        + logonResponse.ErrorMessage);
                 }
 
                 return logonResponse;
             }
-        }
 
-        internal int NegotiateAuthentication(out uint negotiateAuthenticationPackage)
-        {
-            // TODO: better checking on the return codes
-
-            var status = PInvoke.LsaConnectUntrusted(out var lsaHandle);
-
-            using (var name = new PInvoke.LsaStringWrapper("Negotiate"))
-            {
-                status = PInvoke.LsaLookupAuthenticationPackage(lsaHandle, ref name._string, out negotiateAuthenticationPackage);
-            }
-
-            PInvoke.LsaDeregisterLogonProcess(lsaHandle);
-
-            return (int)status;
-        }
-
-        public string GetNativeStringValue(int fieldId)
-        {
-            int result = UnderlyingCredential.GetStringValue((uint)fieldId, out string value);
-
-            if (result != HRESULT.S_OK)
-            {
-                return string.Empty;
-            }
-
-            return value;
+            return null;
         }
 
         #region Credential Provider Interface Methods
@@ -212,14 +180,19 @@ namespace JamieHighfield.CredentialProvider.Credentials
                 Marshal.AddRef(Marshal.GetIUnknownForObject(pcpce));
             }
 
-            if (UnderlyingCredential == null)
+            if (UnderlyingCredential != null)
             {
-                return HRESULT.S_OK;
+                int result = UnderlyingCredential.Advise(Events);
+
+                if (result != HRESULT.S_OK)
+                {
+                    return result;
+                }
             }
-            else
-            {
-                return UnderlyingCredential.Advise(Events);
-            }
+
+            Initialise();
+
+            return HRESULT.S_OK;
         }
 
         /// <summary>
@@ -239,13 +212,10 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
             if (UnderlyingCredential == null)
             {
-
                 return HRESULT.S_OK;
             }
-            else
-            {
-                return UnderlyingCredential.UnAdvise();
-            }
+
+            return UnderlyingCredential.UnAdvise();
         }
 
         /// <summary>
@@ -272,12 +242,9 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
             CredentialProvider.CurrentCredential = this;
 
-            LoadedEventArgs loadedEventArgs = new LoadedEventArgs((pbAutoLogon == 1 ? true : false));
+            pbAutoLogon = 0;
 
-            Loaded?.Invoke(this, loadedEventArgs);
-
-            pbAutoLogon = (loadedEventArgs.AutoLogon == true ? 1 : 0);
-            WindowsLogon = loadedEventArgs.WindowsLogon;
+            Loaded();
 
             return HRESULT.S_OK;
         }
@@ -290,16 +257,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         {
             GlobalLogger.LogMethodCall();
 
-            int result;
-
-            if (UnderlyingCredential == null)
-            {
-                result = HRESULT.E_NOTIMPL;
-            }
-            else
-            {
-                result = UnderlyingCredential.SetDeselected();
-            }
+            int result = UnderlyingCredential?.SetDeselected() ?? HRESULT.E_NOTIMPL;
 
             CredentialProvider.CurrentCredential = null;
 
@@ -316,9 +274,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
             uint count = 0;
 
-            int result = HRESULT.E_FAIL;
-
-            result = (CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK);
+            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
@@ -328,9 +284,9 @@ namespace JamieHighfield.CredentialProvider.Credentials
                 return result;
             }
 
-            if (UnderlyingCredential == null || (dwFieldID >= count))
+            if (UnderlyingCredential == null || dwFieldID >= count)
             {
-                if ((dwFieldID - count) >= Fields.Count)
+                if (dwFieldID - count >= Fields.Count)
                 {
                     pcpfs = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_HIDDEN;
                     pcpfis = _CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE.CPFIS_NONE;
@@ -361,10 +317,8 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 return HRESULT.S_OK;
             }
-            else
-            {
-                return UnderlyingCredential.GetFieldState(dwFieldID, out pcpfs, out pcpfis);
-            }
+
+            return UnderlyingCredential.GetFieldState(dwFieldID, out pcpfs, out pcpfis);
         }
 
         /// <summary>
@@ -377,9 +331,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
             uint count = 0;
 
-            int result = HRESULT.E_FAIL;
-
-            result = (CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK);
+            int result = (CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK);
 
             if (result != HRESULT.S_OK)
             {
@@ -388,10 +340,9 @@ namespace JamieHighfield.CredentialProvider.Credentials
                 return result;
             }
 
-            if (UnderlyingCredential == null || (dwFieldID >= count))
+            if (UnderlyingCredential == null || dwFieldID >= count)
             {
-
-                if ((dwFieldID - count) >= Fields.Count)
+                if (dwFieldID - count >= Fields.Count)
                 {
                     ppsz = string.Empty;
 
@@ -400,17 +351,17 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
 
-                if (identifiedField.Control is LabelControl)
+                if (identifiedField.Control is LabelControl labelControl)
                 {
-                    ppsz = ((LabelControl)identifiedField.Control).Text;
+                    ppsz = labelControl.Text;
                 }
-                else if (identifiedField.Control is TextBoxControl)
+                else if (identifiedField.Control is TextBoxControl textBoxControl)
                 {
-                    ppsz = ((TextBoxControl)identifiedField.Control).Text;
+                    ppsz = textBoxControl.Text;
                 }
-                else if (identifiedField.Control is LinkControl)
+                else if (identifiedField.Control is LinkControl linkControl)
                 {
-                    ppsz = ((LinkControl)identifiedField.Control).Text;
+                    ppsz = linkControl.Text;
                 }
                 else
                 {
@@ -421,10 +372,8 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 return HRESULT.S_OK;
             }
-            else
-            {
-                return UnderlyingCredential.GetStringValue(dwFieldID, out ppsz);
-            }
+
+            return UnderlyingCredential.GetStringValue(dwFieldID, out ppsz);
         }
 
         /// <summary>
@@ -437,9 +386,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
             uint count = 0;
 
-            int result = HRESULT.E_FAIL;
-
-            result = (CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK);
+            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
@@ -448,9 +395,9 @@ namespace JamieHighfield.CredentialProvider.Credentials
                 return result;
             }
 
-            if (UnderlyingCredential == null || (dwFieldID >= count))
+            if (UnderlyingCredential == null || dwFieldID >= count)
             {
-                if ((dwFieldID - count) >= Fields.Count)
+                if (dwFieldID - count >= Fields.Count)
                 {
                     phbmp = IntPtr.Zero;
 
@@ -459,9 +406,9 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
 
-                if (identifiedField.Control is ImageControl)
+                if (identifiedField.Control is ImageControl imageControl)
                 {
-                    phbmp = ((ImageControl)identifiedField.Control).Image.GetHbitmap();
+                    phbmp = imageControl.Image.GetHbitmap();
                 }
                 else
                 {
@@ -472,10 +419,8 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 return HRESULT.S_OK;
             }
-            else
-            {
-                return UnderlyingCredential.GetBitmapValue(dwFieldID, out phbmp);
-            }
+
+            return UnderlyingCredential.GetBitmapValue(dwFieldID, out phbmp);
         }
 
         /// <summary>
@@ -488,9 +433,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
             uint count = 0;
 
-            int result = HRESULT.E_FAIL;
-
-            result = (CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK);
+            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
@@ -502,7 +445,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
             if (UnderlyingCredential == null || (dwFieldID >= count))
             {
-                if ((dwFieldID - count) >= Fields.Count)
+                if (dwFieldID - count >= Fields.Count)
                 {
                     pbChecked = 0;
                     ppszLabel = string.Empty;
@@ -512,10 +455,10 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
 
-                if (identifiedField.Control is CheckBoxControl)
+                if (identifiedField.Control is CheckBoxControl checkBoxControl)
                 {
-                    pbChecked = (((CheckBoxControl)identifiedField.Control).Checked == true ? 1 : 0);
-                    ppszLabel = ((CheckBoxControl)identifiedField.Control).Label;
+                    pbChecked = checkBoxControl.Checked ? 1 : 0;
+                    ppszLabel = checkBoxControl.Label;
                 }
                 else
                 {
@@ -527,10 +470,8 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 return HRESULT.S_OK;
             }
-            else
-            {
-                return UnderlyingCredential.GetCheckboxValue(dwFieldID, out pbChecked, out ppszLabel);
-            }
+
+            return UnderlyingCredential.GetCheckboxValue(dwFieldID, out pbChecked, out ppszLabel);
         }
 
         /// <summary>
@@ -543,9 +484,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
             uint count = 0;
 
-            int result = HRESULT.E_FAIL;
-
-            result = (CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK);
+            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
@@ -556,7 +495,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
             if (UnderlyingCredential == null || (dwFieldID >= count))
             {
-                if ((dwFieldID - count) >= Fields.Count)
+                if (dwFieldID - count >= Fields.Count)
                 {
                     pdwAdjacentTo = 0;
 
@@ -565,11 +504,10 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
 
-                if (identifiedField.Control is ButtonControl)
+                if (identifiedField.Control is ButtonControl buttonControl)
                 {
                     CredentialField adjacentField = Fields
-                        .Where((field) => field.Control == ((ButtonControl)identifiedField.Control).AdjacentControl)
-                        .FirstOrDefault();
+                        .FirstOrDefault(field => field.Control == buttonControl.AdjacentControl);
 
                     if (adjacentField == null)
                     {
@@ -589,10 +527,8 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 return HRESULT.S_OK;
             }
-            else
-            {
-                return UnderlyingCredential.GetSubmitButtonValue(dwFieldID, out pdwAdjacentTo);
-            }
+
+            return UnderlyingCredential.GetSubmitButtonValue(dwFieldID, out pdwAdjacentTo);
         }
 
         /// <summary>
@@ -605,9 +541,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
             uint count = 0;
 
-            int result = HRESULT.E_FAIL;
-
-            result = (CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK);
+            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
@@ -617,17 +551,15 @@ namespace JamieHighfield.CredentialProvider.Credentials
                 return result;
             }
 
-            if (UnderlyingCredential == null || (dwFieldID >= count))
+            if (UnderlyingCredential == null || dwFieldID >= count)
             {
                 pcItems = 0;
                 pdwSelectedItem = 0;
 
                 return HRESULT.E_NOTIMPL;
             }
-            else
-            {
-                return UnderlyingCredential.GetComboBoxValueCount(dwFieldID, out pcItems, out pdwSelectedItem);
-            }
+
+            return UnderlyingCredential.GetComboBoxValueCount(dwFieldID, out pcItems, out pdwSelectedItem);
         }
 
         /// <summary>
@@ -640,9 +572,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
             uint count = 0;
 
-            int result = HRESULT.E_FAIL;
-
-            result = (CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK);
+            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
@@ -651,16 +581,14 @@ namespace JamieHighfield.CredentialProvider.Credentials
                 return result;
             }
 
-            if (UnderlyingCredential == null || (dwFieldID >= count))
+            if (UnderlyingCredential == null || dwFieldID >= count)
             {
                 ppszItem = string.Empty;
 
                 return HRESULT.E_NOTIMPL;
             }
-            else
-            {
-                return UnderlyingCredential.GetComboBoxValueAt(dwFieldID, dwItem, out ppszItem);
-            }
+
+            return UnderlyingCredential.GetComboBoxValueAt(dwFieldID, dwItem, out ppszItem);
         }
 
         /// <summary>
@@ -673,31 +601,29 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
             uint count = 0;
 
-            int result = HRESULT.E_FAIL;
-
-            result = (CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK);
+            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
                 return result;
             }
 
-            if (UnderlyingCredential == null || (dwFieldID >= count))
+            if (UnderlyingCredential == null || dwFieldID >= count)
             {
-                if ((dwFieldID - count) >= Fields.Count)
+                if (dwFieldID - count >= Fields.Count)
                 {
                     return HRESULT.E_INVALIDARG;
                 }
 
                 CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
 
-                if (identifiedField.Control is LabelControl)
+                if (identifiedField.Control is LabelControl labelControl)
                 {
-                    ((LabelControl)identifiedField.Control).UpdateText(psz);
+                    labelControl.UpdateText(psz);
                 }
-                else if (identifiedField.Control is TextBoxControl)
+                else if (identifiedField.Control is TextBoxControl textBoxControl)
                 {
-                    ((TextBoxControl)identifiedField.Control).UpdateText(psz);
+                    textBoxControl.UpdateText(psz);
                 }
                 else
                 {
@@ -706,10 +632,8 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 return HRESULT.S_OK;
             }
-            else
-            {
-                return UnderlyingCredential.SetStringValue(dwFieldID, psz);
-            }
+
+            return UnderlyingCredential.SetStringValue(dwFieldID, psz);
         }
 
         /// <summary>
@@ -722,9 +646,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
             uint count = 0;
 
-            int result = HRESULT.E_FAIL;
-
-            result = (CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK);
+            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
@@ -733,16 +655,16 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
             if (UnderlyingCredential == null || (dwFieldID >= count))
             {
-                if ((dwFieldID - count) >= Fields.Count)
+                if (dwFieldID - count >= Fields.Count)
                 {
                     return HRESULT.E_INVALIDARG;
                 }
 
                 CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
 
-                if (identifiedField.Control is CheckBoxControl)
+                if (identifiedField.Control is CheckBoxControl checkBoxControl)
                 {
-                    ((CheckBoxControl)identifiedField.Control).Checked = (bChecked == 1 ? true : false);
+                    checkBoxControl.Checked = bChecked == 1;
                 }
                 else
                 {
@@ -751,10 +673,8 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 return HRESULT.S_OK;
             }
-            else
-            {
-                return UnderlyingCredential.SetCheckboxValue(dwFieldID, bChecked);
-            }
+
+            return UnderlyingCredential.SetCheckboxValue(dwFieldID, bChecked);
         }
 
         /// <summary>
@@ -767,23 +687,19 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
             uint count = 0;
 
-            int result = HRESULT.E_FAIL;
-
-            result = (CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK);
+            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
                 return result;
             }
 
-            if (UnderlyingCredential == null || (dwFieldID >= count))
+            if (UnderlyingCredential == null || dwFieldID >= count)
             {
                 return HRESULT.E_NOTIMPL;
             }
-            else
-            {
-                return UnderlyingCredential.SetComboBoxSelectedValue(dwFieldID, dwSelectedItem);
-            }
+
+            return UnderlyingCredential.SetComboBoxSelectedValue(dwFieldID, dwSelectedItem);
         }
 
         /// <summary>
@@ -796,27 +712,25 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
             uint count = 0;
 
-            int result = HRESULT.E_FAIL;
-
-            result = (CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK);
+            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
                 return result;
             }
 
-            if (UnderlyingCredential == null || (dwFieldID >= count))
+            if (UnderlyingCredential == null || dwFieldID >= count)
             {
-                if ((dwFieldID - count) >= Fields.Count)
+                if (dwFieldID - count >= Fields.Count)
                 {
                     return HRESULT.E_INVALIDARG;
                 }
 
                 CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
 
-                if (identifiedField.Control is LinkControl)
+                if (identifiedField.Control is LinkControl linkCcontrol)
                 {
-                    ((LinkControl)identifiedField.Control).InvokeClicked(this, new LinkControlClickedEventArgs((LinkControl)identifiedField.Control));
+                    linkCcontrol.InvokeClicked(this, new LinkControlClickedEventArgs(this, linkCcontrol));
                 }
                 else
                 {
@@ -825,10 +739,8 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 return HRESULT.S_OK;
             }
-            else
-            {
-                return UnderlyingCredential.CommandLinkClicked(dwFieldID);
-            }
+
+            return UnderlyingCredential.CommandLinkClicked(dwFieldID);
         }
 
         /// <summary>
@@ -839,74 +751,64 @@ namespace JamieHighfield.CredentialProvider.Credentials
         {
             GlobalLogger.LogMethodCall();
 
-            Logon?.Invoke(this, new LogonEventArgs());
+            BeforeLogon();
 
             if (UnderlyingCredential == null)
             {
                 try
                 {
-                    LogonResponse logonResponse = ProcessLogon();
-
-                    if (logonResponse == null || logonResponse?.ErrorMessage != null)
+                    if (WindowsLogon)
                     {
-                        pcpgsr = _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE.CPGSR_NO_CREDENTIAL_NOT_FINISHED;
-                        pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION() { ulAuthenticationPackage = 1234 };
-                        ppszOptionalStatusText = (logonResponse?.ErrorMessage ?? "An unknown error occurred. Please contact your system administrator.");
-                        pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_ERROR;
+                        LogonResponse logonResponse = ProcessLogon();
 
-                        return HRESULT.S_OK;
-                    }
+                        if (logonResponse == null || logonResponse?.ErrorMessage != null)
+                        {
+                            pcpgsr = _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE.CPGSR_NO_CREDENTIAL_NOT_FINISHED;
+                            pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION { ulAuthenticationPackage = 1234 };
+                            ppszOptionalStatusText = (logonResponse?.ErrorMessage ?? "An unknown error occurred. Please contact your system administrator.");
+                            pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_ERROR;
 
-                    if (WindowsLogon == true)
-                    {
+                            return HRESULT.S_OK;
+                        }
+
                         WindowsLogonPackage windowsLogonPackage = logonResponse.WindowsLogonPackage;
 
-                        pcpgsr = _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE.CPGSR_RETURN_CREDENTIAL_FINISHED;
-                        pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION();
-
                         string username = windowsLogonPackage.Domain + @"\" + windowsLogonPackage.Username;
-                        string password = (new NetworkCredential(string.Empty, windowsLogonPackage.Password)).Password;
+                        string password = new NetworkCredential(string.Empty, windowsLogonPackage.Password).Password;
 
-                        int credentialSize = 0;
-                        IntPtr credentialBuffer = Marshal.AllocCoTaskMem(0);
+                        NegotiateAuthenticationPackage negotiateAuthenticationPackage = NegotiateAuthentication.CreateNegotiateAuthenticationPackage(username, password);
 
-                        if (CredPackAuthenticationBuffer(0, username, password, credentialBuffer, ref credentialSize) == false)
+                        if (negotiateAuthenticationPackage == null)
                         {
-                            Marshal.FreeCoTaskMem(credentialBuffer);
-                            credentialBuffer = Marshal.AllocCoTaskMem(credentialSize);
-
-                            if (CredPackAuthenticationBuffer(0, username, password, credentialBuffer, ref credentialSize) == true)
-                            {
-                                ppszOptionalStatusText = "Welcome";
-                                pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_SUCCESS;
-
-                                pcpcs.clsidCredentialProvider = CredentialProvider.ComGuid;
-                                pcpcs.rgbSerialization = credentialBuffer;
-                                pcpcs.cbSerialization = (uint)credentialSize;
-
-                                NegotiateAuthentication(out uint negotiateAuthenticationPackage);
-                                pcpcs.ulAuthenticationPackage = negotiateAuthenticationPackage;
-
-                                return HRESULT.S_OK;
-                            }
-
                             pcpgsr = _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE.CPGSR_NO_CREDENTIAL_NOT_FINISHED;
-                            pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION() { ulAuthenticationPackage = 1234 };
+                            pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION { ulAuthenticationPackage = 1234 };
                             ppszOptionalStatusText = "An unknown error occurred. Please contact your system administrator.";
                             pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_ERROR;
 
-                            return HRESULT.E_FAIL;
+                            return HRESULT.S_OK;
                         }
-                    }
-                    else
-                    {
-                        pcpgsr = _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE.CPGSR_NO_CREDENTIAL_FINISHED;
-                        pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION() { ulAuthenticationPackage = 1234 };
+
+                        pcpgsr = _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE.CPGSR_RETURN_CREDENTIAL_FINISHED;
+                        pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION
+                        {
+                            clsidCredentialProvider = CredentialProvider.ComGuid,
+                            rgbSerialization = negotiateAuthenticationPackage.CredentialInformation,
+                            cbSerialization = (uint)negotiateAuthenticationPackage.CredentialSize,
+                            ulAuthenticationPackage = (uint)negotiateAuthenticationPackage.AuthenticationPackage
+                        };
+
                         ppszOptionalStatusText = string.Empty;
                         pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_SUCCESS;
 
                         return HRESULT.S_OK;
                     }
+
+                    pcpgsr = _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE.CPGSR_NO_CREDENTIAL_FINISHED;
+                    pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION { ulAuthenticationPackage = 1234 };
+                    ppszOptionalStatusText = string.Empty;
+                    pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_SUCCESS;
+
+                    return HRESULT.S_OK;
                 }
                 catch (Exception exception)
                 {
@@ -914,16 +816,14 @@ namespace JamieHighfield.CredentialProvider.Credentials
                 }
 
                 pcpgsr = _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE.CPGSR_NO_CREDENTIAL_NOT_FINISHED;
-                pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION() { ulAuthenticationPackage = 1234 };
+                pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION { ulAuthenticationPackage = 1234 };
                 ppszOptionalStatusText = string.Empty;
                 pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_SUCCESS;
 
                 return HRESULT.S_OK;
             }
-            else
-            {
-                return UnderlyingCredential.GetSerialization(out pcpgsr, out pcpcs, out ppszOptionalStatusText, out pcpsiOptionalStatusIcon);
-            }
+
+            return UnderlyingCredential.GetSerialization(out pcpgsr, out pcpcs, out ppszOptionalStatusText, out pcpsiOptionalStatusIcon);
         }
 
         /// <summary>
@@ -941,39 +841,13 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 return HRESULT.S_OK;
             }
-            else
-            {
-                return UnderlyingCredential.ReportResult(ntsStatus, ntsSubstatus, out ppszOptionalStatusText, out pcpsiOptionalStatusIcon);
-            }
+
+            return UnderlyingCredential.ReportResult(ntsStatus, ntsSubstatus, out ppszOptionalStatusText, out pcpsiOptionalStatusIcon);
         }
 
         #endregion
 
         #endregion
-
-        #endregion
-
-        #region Events
-
-        /// <summary>
-        /// This event is raised after this credential is selected.
-        /// </summary>
-        public event EventHandler<LoadedEventArgs> Loaded;
-
-        /// <summary>
-        /// This event is raised before any disconnect operation is started (only pertinent to when this credential is wrapping another credential). This credential will need to implement the <see cref="IConnectableCredential"/> interface.
-        /// </summary>
-        public event EventHandler Disconnecting;
-
-        /// <summary>
-        /// This event is raised after any disconnect operation is started (only pertinent to when this credential is wrapping another credential). This credential will need to implement the <see cref="IConnectableCredential"/> interface. When this credential is not wrapping another credential, this event should not be used, although will still be raised. Instead, you should use the <see cref="Disconnecting"/> event.
-        /// </summary>
-        public event EventHandler Disconnected;
-
-        /// <summary>
-        /// This event is raised after any connect operation when the user submits the credentials.
-        /// </summary>
-        public event EventHandler<LogonEventArgs> Logon;
 
         #endregion
     }

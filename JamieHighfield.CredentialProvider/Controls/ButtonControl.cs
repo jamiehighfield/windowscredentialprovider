@@ -17,21 +17,9 @@ namespace JamieHighfield.CredentialProvider.Controls
 {
     public sealed class ButtonControl : LabelledCredentialControlBase
     {
-        public ButtonControl(string label, CredentialControlBase adjacentControl)
-            : this(CredentialFieldVisibilities.SelectedCredential, label, adjacentControl)
+        internal ButtonControl()
+            : base(CredentialControlTypes.Button)
         { }
-
-        public ButtonControl(CredentialFieldVisibilities visibility, string label, CredentialControlBase adjacentControl)
-            : base(CredentialControlTypes.TextBox, label)
-        {
-            AdjacentControl = adjacentControl;
-        }
-
-        public ButtonControl(Func<CredentialProviderUsageScenarios, CredentialFieldVisibilities> visibilityDelegate, string label, CredentialControlBase adjacentControl)
-            : base(CredentialControlTypes.TextBox, visibilityDelegate, label)
-        {
-            AdjacentControl = adjacentControl;
-        }
 
         #region Variables
 
@@ -41,7 +29,7 @@ namespace JamieHighfield.CredentialProvider.Controls
 
         #region Properties
 
-        public CredentialControlBase AdjacentControl { get; private set; }
+        public CredentialControlBase AdjacentControl { get; internal set; }
 
         #endregion
 
@@ -51,7 +39,16 @@ namespace JamieHighfield.CredentialProvider.Controls
         {
             return _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_SUBMIT_BUTTON;
         }
-        
+
+        internal override CredentialControlBase Clone()
+        {
+            return new ButtonControl()
+            {
+                Visibility = Visibility,
+                Label = Label
+            };
+        }
+
         #endregion
     }
 }

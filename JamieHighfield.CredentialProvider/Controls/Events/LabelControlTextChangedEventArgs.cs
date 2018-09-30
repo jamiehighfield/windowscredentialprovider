@@ -9,12 +9,14 @@
  * 
  */
 
+using JamieHighfield.CredentialProvider.Credentials;
+
 namespace JamieHighfield.CredentialProvider.Controls.Events
 {
     public sealed class LabelControlTextChangedEventArgs : CredentialControlEventEventArgs<LabelControl>
     {
-        public LabelControlTextChangedEventArgs(LabelControl labelControl)
-            : base(labelControl)
+        public LabelControlTextChangedEventArgs(CredentialBase credential, LabelControl labelControl)
+            : base(credential, labelControl)
         { }
 
         #region Variables

@@ -18,22 +18,10 @@ namespace JamieHighfield.CredentialProvider.Controls
 {
     public sealed class LinkControl : CredentialControlBase
     {
-        public LinkControl(string text)
-            : this(CredentialFieldVisibilities.SelectedCredential, text)
+        internal LinkControl()
+            : base(CredentialControlTypes.Link)
         { }
-
-        public LinkControl(CredentialFieldVisibilities visibility, string text)
-            : base(CredentialControlTypes.Link, visibility)
-        {
-            Text = text;
-        }
-
-        public LinkControl(Func<CredentialProviderUsageScenarios, CredentialFieldVisibilities> visibilityDelegate, string text)
-            : base(CredentialControlTypes.Link, visibilityDelegate)
-        {
-            Text = text;
-        }
-
+        
         #region Variables
 
 
@@ -56,6 +44,22 @@ namespace JamieHighfield.CredentialProvider.Controls
         internal void InvokeClicked(object sender, LinkControlClickedEventArgs eventArgs)
         {
             Clicked?.Invoke(sender, eventArgs);
+        }
+
+        internal override CredentialControlBase Clone()
+        {
+            LinkControl linkControl = new LinkControl()
+            {
+                Text = Text,
+                Visibility = Visibility
+            };
+
+            if (Clicked != null)
+            {
+                linkControl.Clicked += Clicked;
+            }
+
+            return linkControl;
         }
 
         #endregion

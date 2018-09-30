@@ -29,17 +29,17 @@ namespace JamieHighfield.CredentialProvider.Logon.Authentication
 
         #region Methods
 
-        internal sealed override LogonResponse ProcessSequence(LogonPackage logonPackage, WindowsLogonPackage windowsLogonPackage)
+        internal sealed override LogonResponse ProcessSequence(IncomingLogonPackage incomingLogonPackage, WindowsLogonPackage windowsLogonPackage)
         {
-            if (logonPackage == null)
+            if (incomingLogonPackage == null)
             {
-                throw new ArgumentNullException(nameof(logonPackage));
+                throw new ArgumentNullException(nameof(incomingLogonPackage));
             }
 
-            return Authenticate(logonPackage, windowsLogonPackage);
+            return Authenticate(incomingLogonPackage, windowsLogonPackage);
         }
 
-        public abstract LogonResponse Authenticate(LogonPackage logonPackage, WindowsLogonPackage windowsLogonPackage);
+        public abstract LogonResponse Authenticate(IncomingLogonPackage incomingLogonPackage, WindowsLogonPackage windowsLogonPackage);
 
         #endregion
     }
