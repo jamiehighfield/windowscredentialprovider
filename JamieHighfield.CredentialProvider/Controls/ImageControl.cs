@@ -9,8 +9,8 @@
  * 
  */
 
+using JamieHighfield.CredentialProvider.Credentials;
 using JamieHighfield.CredentialProvider.Interop;
-using JamieHighfield.CredentialProvider.Providers;
 using System;
 using System.Drawing;
 
@@ -22,15 +22,36 @@ namespace JamieHighfield.CredentialProvider.Controls
             : base(CredentialControlTypes.Image)
         { }
 
+        internal ImageControl(Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, Bitmap> image)
+            : base(CredentialControlTypes.Image, visibility)
+        {
+            Visibility = visibility ?? throw new ArgumentNullException(nameof(visibility));
+
+            _image = new DynamicPropertyStore<Bitmap>(this, image);
+        }
+
+
         #region Variables
 
-
+        private DynamicPropertyStore<Bitmap> _image;
 
         #endregion
 
         #region Properties
 
-        public Bitmap Image { get; internal set; }
+        public Func<CredentialBase, CredentialFieldVisibilities> Visibility { get; }
+
+        public Bitmap Image
+        {
+            get
+            {
+                return _image.Value;
+            }
+            internal set
+            {
+                _image.Value = value;
+            }
+        }
 
         #endregion
 
@@ -45,8 +66,7 @@ namespace JamieHighfield.CredentialProvider.Controls
         {
             return new ImageControl()
             {
-                Image = Image,
-                Visibility = Visibility
+                Image = Image
             };
         }
 

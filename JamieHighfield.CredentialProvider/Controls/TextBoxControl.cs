@@ -12,21 +12,34 @@
 using JamieHighfield.CredentialProvider.Controls.Events;
 using JamieHighfield.CredentialProvider.Credentials;
 using JamieHighfield.CredentialProvider.Interop;
-using JamieHighfield.CredentialProvider.Logging;
-using JamieHighfield.CredentialProvider.Providers;
 using System;
 
 namespace JamieHighfield.CredentialProvider.Controls
 {
+    /// <summary>
+    /// An interactable text control.
+    /// </summary>
     public sealed class TextBoxControl : LabelledCredentialControlBase
     {
         internal TextBoxControl()
             : base(CredentialControlTypes.TextBox)
         { }
-        
+
+        internal TextBoxControl(Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, string> label, Func<CredentialBase, string> text, bool password)
+            : base(CredentialControlTypes.TextBox, visibility, label)
+        {
+            if (text == null)
+            {
+                throw new ArgumentNullException(nameof(text));
+            }
+
+            _text = new DynamicPropertyStore<string>(this, text);
+            Password = password;
+        }
+
         #region Variables
 
-        private string _text;
+        private DynamicPropertyStore<string> _text;
 
         #endregion
 
@@ -39,18 +52,15 @@ namespace JamieHighfield.CredentialProvider.Controls
         {
             get
             {
-                return _text;
+                return _text.Value;
             }
             set
             {
-                _text = value;
+                _text.Value = value;
 
                 TextChanged?.Invoke(this, new TextBoxControlTextChangedEventArgs(Credential, this));
 
-                if (Credential != null)
-                {
-                    Credential.Events.SetFieldString(Credential, (uint)Field.FieldId, Text);
-                }
+                Credential?.Events?.SetFieldString(Credential, (uint)Field.FieldId, Text);
             }
         }
 
@@ -77,7 +87,7 @@ namespace JamieHighfield.CredentialProvider.Controls
 
         internal void UpdateText(string text)
         {
-            _text = text;
+            _text.Value = text ?? throw new ArgumentNullException(nameof(text));
 
             TextChanged?.Invoke(this, new TextBoxControlTextChangedEventArgs(Credential, this));
         }

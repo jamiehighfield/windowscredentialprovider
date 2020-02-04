@@ -158,7 +158,7 @@ namespace JamieHighfield.CredentialProvider.Providers
         /// </summary>
         internal CredentialCollection Credentials { get; private set; }
 
-        public ReadOnlyCredentialControlCollection Controls { get; private set; }
+        private ReadOnlyCredentialControlCollection Controls { get; set; }
 
         #endregion
 
@@ -178,6 +178,7 @@ namespace JamieHighfield.CredentialProvider.Providers
         public CredentialBase CurrentCredential { get; internal set; }
 
         private Action<CredentialCollection> CredentialsDelegate { get; }
+
 
         private Action<ICurrentEnvironment, CredentialControlCollection> ControlsDelegate { get; }
 
@@ -219,18 +220,6 @@ namespace JamieHighfield.CredentialProvider.Providers
         #endregion
 
         #region Methods
-
-        /// <summary>
-        /// This method is called during the initialisation of the credential provider and is responsible for adding credentials. This is ignored when a parent credential provider has been specified.
-        /// </summary>
-        /// <param name="credentials"></param>
-        public virtual void AddCredentials(CredentialCollection credentials) { }
-
-        /// <summary>
-        /// This method is called during the initialisation of the credential provider and is responsible for adding controls to enumerated credentials.
-        /// </summary>
-        /// <param name="controls"></param>
-        public virtual void AddControls(CredentialControlCollection controls) { }
 
         #region Credential Provider Interface Methods
 
@@ -315,19 +304,17 @@ namespace JamieHighfield.CredentialProvider.Providers
                         break;
                     }
             }
-            
+
             supportedUsageScenario = this.IsCurrentUsageScenarioSupported();
 
             if (supportedUsageScenario == false)
             {
                 return HRESULT.E_NOTIMPL;
             }
-            
+
             CredentialCollection credentials = new CredentialCollection(this);
 
             CredentialsDelegate?.Invoke(credentials);
-
-            AddCredentials(credentials);
 
             Credentials = credentials;
 
@@ -335,13 +322,11 @@ namespace JamieHighfield.CredentialProvider.Providers
 
             ControlsDelegate?.Invoke(this, controls);
 
-            AddControls(controls);
-
             Controls = new ReadOnlyCredentialControlCollection(controls);
 
             foreach (CredentialBase credential in Credentials)
             {
-                credential.Controls = new ReadOnlyCredentialControlCollection(Controls.Select((control) => control.Clone()).ToList(), credential);
+                credential.Controls = new ReadOnlyCredentialControlCollection(Controls.ToList(), credential);
 
                 CredentialFieldCollection fields = new CredentialFieldCollection();
 
@@ -574,6 +559,8 @@ namespace JamieHighfield.CredentialProvider.Providers
 
             pdwCount = (uint)Credentials.Count;
 
+            Console.WriteLine(pdwCount);
+
             return HRESULT.S_OK;
         }
 
@@ -586,6 +573,7 @@ namespace JamieHighfield.CredentialProvider.Providers
             GlobalLogger.LogMethodCall();
 
             int effectiveIndex = (int)dwIndex;
+            Console.WriteLine("Here23");
 
             //Check if there is a parent credential provider, and if so, run the same method on that credential provider.
 
@@ -616,7 +604,7 @@ namespace JamieHighfield.CredentialProvider.Providers
                     wrappedCredential.CredentialProvider = this;
                     wrappedCredential.UnderlyingCredential = credential;
 
-                    wrappedCredential.Controls = new ReadOnlyCredentialControlCollection(Controls.Select((control) => control.Clone()).ToList(), wrappedCredential);
+                    wrappedCredential.Controls = new ReadOnlyCredentialControlCollection(Controls.ToList(), wrappedCredential);
 
                     CredentialFieldCollection fields = new CredentialFieldCollection();
 
@@ -635,6 +623,8 @@ namespace JamieHighfield.CredentialProvider.Providers
 
                     wrappedCredential.Fields = fields;
 
+                    wrappedCredential.Initialise();
+
                     ppcpc = wrappedCredential;
 
                     return HRESULT.S_OK;
@@ -647,12 +637,20 @@ namespace JamieHighfield.CredentialProvider.Providers
 
             if (effectiveIndex >= Fields.Count)
             {
+                Console.WriteLine("Invalid");
                 ppcpc = null;
 
                 return HRESULT.E_INVALIDARG;
             }
 
+            Console.WriteLine("Here3");
+            Credentials[effectiveIndex].Initialise();
+
+            Console.WriteLine("Here");
+
             ppcpc = Credentials[effectiveIndex];
+
+            Console.WriteLine("Okay");
 
             return HRESULT.S_OK;
         }

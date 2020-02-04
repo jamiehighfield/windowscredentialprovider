@@ -19,7 +19,7 @@ namespace JamieHighfield.CredentialProvider.Sample.Credentials
 
         #region Properties
 
-
+        
 
         #endregion
 

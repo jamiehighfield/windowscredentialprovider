@@ -16,6 +16,9 @@ using System;
 
 namespace JamieHighfield.CredentialProvider.Controls
 {
+    /// <summary>
+    /// An abstract class that all controls on the credential will inherit from.
+    /// </summary>
     public abstract class CredentialControlBase
     {
         internal CredentialControlBase(CredentialControlTypes type)
@@ -23,13 +26,27 @@ namespace JamieHighfield.CredentialProvider.Controls
             Type = type;
         }
 
+        internal CredentialControlBase(CredentialControlTypes type, Func<CredentialBase, CredentialFieldVisibilities> visibility)
+        {
+            if (visibility == null)
+            {
+                throw new ArgumentNullException(nameof(visibility));
+            }
+
+            Type = type;
+
+            _visibility = new DynamicPropertyStore<CredentialFieldVisibilities>(this, visibility);
+        }
+
         #region Variables
 
-
+        private DynamicPropertyStore<CredentialFieldVisibilities> _visibility;
 
         #endregion
 
         #region Properties
+
+        #region Miscellaneous
 
         internal CredentialField Field { get; set; }
 
@@ -39,9 +56,21 @@ namespace JamieHighfield.CredentialProvider.Controls
 
         internal Action<Action<CredentialBase, int>> EventCallback { get; set; }
 
+        #endregion
+
         internal CredentialControlTypes Type { get; set; }
 
-        internal CredentialFieldVisibilities Visibility { get; set; }
+        internal CredentialFieldVisibilities Visibility
+        {
+            get
+            {
+                return _visibility.Value;
+            }
+            set
+            {
+                _visibility.Value = value;
+            }
+        }
 
         #endregion
 

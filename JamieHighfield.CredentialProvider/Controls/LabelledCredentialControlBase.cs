@@ -9,6 +9,7 @@
  * 
  */
 
+using JamieHighfield.CredentialProvider.Credentials;
 using JamieHighfield.CredentialProvider.Interop;
 using JamieHighfield.CredentialProvider.Providers;
 using System;
@@ -21,15 +22,31 @@ namespace JamieHighfield.CredentialProvider.Controls
             : base(type)
         { }
 
+        internal LabelledCredentialControlBase(CredentialControlTypes type, Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, string> label)
+            : base(type, visibility)
+        {
+            _label = new DynamicPropertyStore<string>(this, label);
+        }
+
         #region Variables
 
-
+        private DynamicPropertyStore<string> _label;
 
         #endregion
 
         #region Properties
 
-        public string Label { get; internal set; }
+        public string Label
+        {
+            get
+            {
+                return _label.Value;
+            }
+             internal set
+            {
+                _label.Value = value;
+            }
+        }
 
         #endregion
 

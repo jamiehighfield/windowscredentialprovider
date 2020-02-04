@@ -37,15 +37,13 @@ namespace JamieHighfield.CredentialProvider.Sample
         {
             try
             {
-
-
                 //string username = incomingLogonPackage.Credential.;// ((CredentialSample)logonPackage.Credential).Username;
                 //SecureString password = ((CredentialSample)logonPackage.Credential).Password;
                 string domain = Environment.MachineName;// ((CredentialSample)logonPackage.Credential).Domain;
 
                 using (PrincipalContext principalContext = new PrincipalContext(ContextType.Machine))
                 {
-                    if (principalContext.ValidateCredentials("jamie", (new NetworkCredential(string.Empty, "password")).Password) == true)
+                    if (principalContext.ValidateCredentials("admin", (new NetworkCredential(string.Empty, "password")).Password) == true)
                     {
                         return new LogonResponse(incomingLogonPackage, new WindowsLogonPackage("jamie", "password", domain));
                     }

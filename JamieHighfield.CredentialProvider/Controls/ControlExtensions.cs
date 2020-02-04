@@ -10,6 +10,7 @@
  */
 
 using JamieHighfield.CredentialProvider.Controls.Events;
+using JamieHighfield.CredentialProvider.Credentials;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -33,6 +34,12 @@ namespace JamieHighfield.CredentialProvider.Controls
 
         #region Methods
 
+        /// <summary>
+        /// Gets the first <see cref="CredentialControlBase"/> of type <see cref="TControlType"/>. If there are no controls of type <see cref="TControlType"/>, then this will return null.
+        /// </summary>
+        /// <typeparam name="TControlType">The type of control that inherits <see cref="CredentialControlBase"/>.</typeparam>
+        /// <param name="controls"></param>
+        /// <returns></returns>
         public static TControlType FirstOfControlType<TControlType>(this IList<CredentialControlBase> controls)
             where TControlType : CredentialControlBase
         {
@@ -86,7 +93,7 @@ namespace JamieHighfield.CredentialProvider.Controls
 
         #region Image Control
 
-        public static CredentialControlCollection AddImage(this CredentialControlCollection controls, Bitmap image)
+        public static CredentialControlCollection AddImage(this CredentialControlCollection controls, Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, Bitmap> image)
         {
             if (controls == null)
             {
@@ -98,96 +105,35 @@ namespace JamieHighfield.CredentialProvider.Controls
                 throw new ArgumentNullException(nameof(image));
             }
 
-            return controls.Add<ImageControl>((control) =>
-            {
-                control.Image = image;
-            });
-        }
+            controls.Add(new ImageControl(visibility, image));
 
-        public static CredentialControlCollection AddImage(this CredentialControlCollection controls, CredentialFieldVisibilities visibility, Bitmap image)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
-
-            if (image == null)
-            {
-                throw new ArgumentNullException(nameof(image));
-            }
-
-            return controls.Add<ImageControl>(visibility, (control) =>
-            {
-                control.Image = image;
-            });
-        }
-
-        public static CredentialControlCollection AddImage(this CredentialControlCollection controls, Func<CredentialFieldVisibilities> visibilityDelegate, Bitmap image)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
-
-            if (visibilityDelegate == null)
-            {
-                throw new ArgumentNullException(nameof(visibilityDelegate));
-            }
-
-            if (image == null)
-            {
-                throw new ArgumentNullException(nameof(image));
-            }
-
-            return controls.Add<ImageControl>(visibilityDelegate.Invoke(), (control) =>
-            {
-                control.Image = image;
-            });
+            return controls;
         }
 
         #endregion
 
         #region Label Control
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="size"></param>
-        /// <param name="text"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddLabel(this CredentialControlCollection controls, LabelControlSizes size, string text)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
 
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
 
-            return controls.Add<LabelControl>((control) =>
-            {
-                control.Size = size;
-                control.Text = text;
-            });
-        }
 
         /// <summary>
-        /// 
+        /// Add a new <see cref="LabelControl"/> to the <see cref="CredentialControlCollection"/>.
         /// </summary>
         /// <param name="controls"></param>
         /// <param name="visibility"></param>
-        /// <param name="size"></param>
         /// <param name="text"></param>
         /// <returns></returns>
-        public static CredentialControlCollection AddLabel(this CredentialControlCollection controls, CredentialFieldVisibilities visibility, LabelControlSizes size, string text)
+        public static CredentialControlCollection AddLabel(this CredentialControlCollection controls, Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, string> text)
         {
             if (controls == null)
             {
                 throw new ArgumentNullException(nameof(controls));
+            }
+
+            if (visibility == null)
+            {
+                throw new ArgumentNullException(nameof(visibility));
             }
 
             if (text == null)
@@ -195,56 +141,29 @@ namespace JamieHighfield.CredentialProvider.Controls
                 throw new ArgumentNullException(nameof(text));
             }
 
-            return controls.Add<LabelControl>(visibility, (control) =>
-            {
-                control.Size = size;
-                control.Text = text;
-            });
-        }
-        
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="size"></param>
-        /// <param name="text"></param>
-        /// <param name="textChanged"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddLabel(this CredentialControlCollection controls, LabelControlSizes size, string text, EventHandler<LabelControlTextChangedEventArgs> textChanged)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
+            controls.Add(new LabelControl(visibility, text));
 
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
-
-            return controls.Add<LabelControl>((control) =>
-            {
-                control.Size = size;
-                control.Text = text;
-
-                control.TextChanged += textChanged;
-            });
+            return controls;
         }
 
         /// <summary>
-        /// 
+        /// Add a new <see cref="LabelControl"/> to the <see cref="CredentialControlCollection"/>.
         /// </summary>
         /// <param name="controls"></param>
         /// <param name="visibility"></param>
-        /// <param name="size"></param>
         /// <param name="text"></param>
-        /// <param name="textChanged"></param>
+        /// <param name="size"></param>
         /// <returns></returns>
-        public static CredentialControlCollection AddLabel(this CredentialControlCollection controls, CredentialFieldVisibilities visibility, LabelControlSizes size, string text, EventHandler<LabelControlTextChangedEventArgs> textChanged)
+        public static CredentialControlCollection AddLabel(this CredentialControlCollection controls, Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, string> text, LabelControlSizes size)
         {
             if (controls == null)
             {
                 throw new ArgumentNullException(nameof(controls));
+            }
+
+            if (visibility == null)
+            {
+                throw new ArgumentNullException(nameof(visibility));
             }
 
             if (text == null)
@@ -252,80 +171,39 @@ namespace JamieHighfield.CredentialProvider.Controls
                 throw new ArgumentNullException(nameof(text));
             }
 
-            return controls.Add<LabelControl>(visibility, (control) =>
-            {
-                control.Size = size;
-                control.Text = text;
+            controls.Add(new LabelControl(visibility, text, size));
 
-                control.TextChanged += textChanged;
-            });
+            return controls;
         }
 
         /// <summary>
-        /// 
+        /// Add a new <see cref="LabelControl"/> to the <see cref="CredentialControlCollection"/>.
         /// </summary>
         /// <param name="controls"></param>
-        /// <param name="visibilityDelegate">Set the visibility of this control based on a delegate (for example, you could use this to selectively show this control based on the current usage scenario.</param>
-        /// <param name="size"></param>
+        /// <param name="visibility"></param>
         /// <param name="text"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddLabel(this CredentialControlCollection controls, Func<CredentialFieldVisibilities> visibilityDelegate, LabelControlSizes size, string text)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
-
-            if (visibilityDelegate == null)
-            {
-                throw new ArgumentNullException(nameof(visibilityDelegate));
-            }
-
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
-
-            return controls.Add<LabelControl>(visibilityDelegate.Invoke(), (control) =>
-            {
-                control.Size = size;
-                control.Text = text;
-            });
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="visibilityDelegate">Set the visibility of this control based on a delegate (for example, you could use this to selectively show this control based on the current usage scenario.</param>
         /// <param name="size"></param>
-        /// <param name="text"></param>
         /// <param name="textChanged"></param>
         /// <returns></returns>
-        public static CredentialControlCollection AddLabel(this CredentialControlCollection controls, Func<CredentialFieldVisibilities> visibilityDelegate, LabelControlSizes size, string text, EventHandler<LabelControlTextChangedEventArgs> textChanged)
+        public static CredentialControlCollection AddLabel(this CredentialControlCollection controls, Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, string> text, LabelControlSizes size, EventHandler<LabelControlTextChangedEventArgs> textChanged)
         {
             if (controls == null)
             {
                 throw new ArgumentNullException(nameof(controls));
             }
 
-            if (visibilityDelegate == null)
+            if (textChanged == null)
             {
-                throw new ArgumentNullException(nameof(visibilityDelegate));
+                throw new ArgumentNullException(nameof(textChanged));
             }
 
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
+            LabelControl labelControl = new LabelControl(visibility, text, size);
 
-            return controls.Add<LabelControl>(visibilityDelegate.Invoke(), (control) =>
-            {
-                control.Size = size;
-                control.Text = text;
+            labelControl.TextChanged += textChanged;
 
-                control.TextChanged += textChanged;
-            });
+            controls.Add(labelControl);
+
+            return controls;
         }
 
         #endregion
@@ -333,105 +211,126 @@ namespace JamieHighfield.CredentialProvider.Controls
         #region Text Box Control
 
         /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="label"></param>
-        /// <param name="password"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddTextBox(this CredentialControlCollection controls, string label, bool password)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
-
-            if (label == null)
-            {
-                throw new ArgumentNullException(nameof(label));
-            }
-
-            return controls.Add<TextBoxControl>((control) =>
-            {
-                control.Label = label;
-                control.Password = password;
-            });
-        }
-
-        /// <summary>
-        /// 
+        /// Add a new <see cref="TextBoxControl"/> to the <see cref="CredentialControlCollection"/>.
         /// </summary>
         /// <param name="controls"></param>
         /// <param name="visibility"></param>
-        /// <param name="label"></param>
-        /// <param name="password"></param>
+        /// <param name="text"></param>
         /// <returns></returns>
-        public static CredentialControlCollection AddTextBox(this CredentialControlCollection controls, CredentialFieldVisibilities visibility, string label, bool password)
+        public static CredentialControlCollection AddTextBox(this CredentialControlCollection controls, Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, string> label, Func<CredentialBase, string> text)
         {
             if (controls == null)
             {
                 throw new ArgumentNullException(nameof(controls));
             }
 
+            if (visibility == null)
+            {
+                throw new ArgumentNullException(nameof(visibility));
+            }
+
             if (label == null)
             {
                 throw new ArgumentNullException(nameof(label));
+            }
+
+            if (text == null)
+            {
+                throw new ArgumentNullException(nameof(text));
+            }
+
+            controls.Add(new TextBoxControl(visibility, label, text, false));
+
+            return controls;
+        }
+        
+        /// <summary>
+        /// Add a new <see cref="TextBoxControl"/> to the <see cref="CredentialControlCollection"/>.
+        /// </summary>
+        /// <param name="controls"></param>
+        /// <param name="visibility"></param>
+        /// <param name="text"></param>
+        /// <returns></returns>
+        public static CredentialControlCollection AddTextBox(this CredentialControlCollection controls, Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, string> label, Func<CredentialBase, string> text, EventHandler<TextBoxControlTextChangedEventArgs> textChanged)
+        {
+            if (controls == null)
+            {
+                throw new ArgumentNullException(nameof(controls));
+            }
+
+            if (visibility == null)
+            {
+                throw new ArgumentNullException(nameof(visibility));
+            }
+
+            if (label == null)
+            {
+                throw new ArgumentNullException(nameof(label));
+            }
+
+            if (text == null)
+            {
+                throw new ArgumentNullException(nameof(text));
+            }
+
+            TextBoxControl textBoxControl = new TextBoxControl(visibility, label, text, false);
+
+            textBoxControl.TextChanged += textChanged;
+
+            return controls;
+        }
+
+        /// <summary>
+        /// Add a new password <see cref="TextBoxControl"/> to the <see cref="CredentialControlCollection"/>.
+        /// </summary>
+        /// <param name="controls"></param>
+        /// <param name="visibility"></param>
+        /// <param name="text"></param>
+        /// <returns></returns>
+        public static CredentialControlCollection AddPasswordTextBox(this CredentialControlCollection controls, Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, string> label, Func<CredentialBase, string> text)
+        {
+            if (controls == null)
+            {
+                throw new ArgumentNullException(nameof(controls));
+            }
+
+            if (visibility == null)
+            {
+                throw new ArgumentNullException(nameof(visibility));
+            }
+
+            if (label == null)
+            {
+                throw new ArgumentNullException(nameof(label));
+            }
+
+            if (text == null)
+            {
+                throw new ArgumentNullException(nameof(text));
             }
             
-            return controls.Add<TextBoxControl>(visibility, (control) =>
-            {
-                control.Label = label;
-                control.Password = password;
-            });
-        }
-        
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="label"></param>
-        /// <param name="password"></param>
-        /// <param name="text"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddTextBox(this CredentialControlCollection controls, string label, bool password, string text)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
+            controls.Add(new TextBoxControl(visibility, label, text, true));
 
-            if (label == null)
-            {
-                throw new ArgumentNullException(nameof(label));
-            }
-
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
-
-            return controls.Add<TextBoxControl>((control) =>
-            {
-                control.Label = label;
-                control.Password = password;
-                control.Text = text;
-            });
+            return controls;
         }
 
         /// <summary>
-        /// 
+        /// Add a new password <see cref="TextBoxControl"/> to the <see cref="CredentialControlCollection"/>.
         /// </summary>
         /// <param name="controls"></param>
         /// <param name="visibility"></param>
-        /// <param name="label"></param>
-        /// <param name="password"></param>
         /// <param name="text"></param>
         /// <returns></returns>
-        public static CredentialControlCollection AddTextBox(this CredentialControlCollection controls, CredentialFieldVisibilities visibility, string label, bool password, string text)
+        public static CredentialControlCollection AddPasswordTextBox(this CredentialControlCollection controls, Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, string> label, Func<CredentialBase, string> text, EventHandler<TextBoxControlTextChangedEventArgs> textChanged)
         {
             if (controls == null)
             {
                 throw new ArgumentNullException(nameof(controls));
+            }
+
+            if (visibility == null)
+            {
+                throw new ArgumentNullException(nameof(visibility));
             }
 
             if (label == null)
@@ -444,533 +343,112 @@ namespace JamieHighfield.CredentialProvider.Controls
                 throw new ArgumentNullException(nameof(text));
             }
 
-            return controls.Add<TextBoxControl>(visibility, (control) =>
-            {
-                control.Label = label;
-                control.Password = password;
-                control.Text = text;
-            });
-        }
-        
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="label"></param>
-        /// <param name="password"></param>
-        /// <param name="textChanged"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddTextBox(this CredentialControlCollection controls, string label, bool password, EventHandler<TextBoxControlTextChangedEventArgs> textChanged)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
+            TextBoxControl textBoxControl = new TextBoxControl(visibility, label, text, true);
 
-            if (label == null)
-            {
-                throw new ArgumentNullException(nameof(label));
-            }
+            textBoxControl.TextChanged += textChanged;
 
-            if (textChanged == null)
-            {
-                throw new ArgumentNullException(nameof(textChanged));
-            }
-
-            return controls.Add<TextBoxControl>((control) =>
-            {
-                control.Label = label;
-                control.Password = password;
-
-                control.TextChanged += textChanged;
-            });
+            return controls;
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="visibility"></param>
-        /// <param name="label"></param>
-        /// <param name="password"></param>
-        /// <param name="textChanged"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddTextBox(this CredentialControlCollection controls, CredentialFieldVisibilities visibility, string label, bool password, EventHandler<TextBoxControlTextChangedEventArgs> textChanged)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
-
-            if (label == null)
-            {
-                throw new ArgumentNullException(nameof(label));
-            }
-
-            if (textChanged == null)
-            {
-                throw new ArgumentNullException(nameof(textChanged));
-            }
-
-            return controls.Add<TextBoxControl>(visibility, (control) =>
-            {
-                control.Label = label;
-                control.Password = password;
-
-                control.TextChanged += textChanged;
-            });
-        }
-        
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="label"></param>
-        /// <param name="password"></param>
-        /// <param name="text"></param>
-        /// <param name="textChanged"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddTextBox(this CredentialControlCollection controls, string label, bool password, string text, EventHandler<TextBoxControlTextChangedEventArgs> textChanged)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
-
-            if (label == null)
-            {
-                throw new ArgumentNullException(nameof(label));
-            }
-
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
-
-            if (textChanged == null)
-            {
-                throw new ArgumentNullException(nameof(textChanged));
-            }
-
-            return controls.Add<TextBoxControl>((control) =>
-            {
-                control.Label = label;
-                control.Password = password;
-                control.Text = text;
-
-                control.TextChanged += textChanged;
-            });
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="visibility"></param>
-        /// <param name="label"></param>
-        /// <param name="password"></param>
-        /// <param name="text"></param>
-        /// <param name="textChanged"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddTextBox(this CredentialControlCollection controls, CredentialFieldVisibilities visibility, string label, bool password, string text, EventHandler<TextBoxControlTextChangedEventArgs> textChanged)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
-
-            if (label == null)
-            {
-                throw new ArgumentNullException(nameof(label));
-            }
-
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
-
-            if (textChanged == null)
-            {
-                throw new ArgumentNullException(nameof(textChanged));
-            }
-
-            return controls.Add<TextBoxControl>(visibility, (control) =>
-            {
-                control.Label = label;
-                control.Password = password;
-                control.Text = text;
-
-                control.TextChanged += textChanged;
-            });
-        }
-        
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="visibilityDelegate">Set the visibility of this control based on a delegate (for example, you could use this to selectively show this control based on the current usage scenario.</param>
-        /// <param name="label"></param>
-        /// <param name="password"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddTextBox(this CredentialControlCollection controls, Func<CredentialFieldVisibilities> visibilityDelegate, string label, bool password)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
-
-            if (visibilityDelegate == null)
-            {
-                throw new ArgumentNullException(nameof(visibilityDelegate));
-            }
-
-            if (label == null)
-            {
-                throw new ArgumentNullException(nameof(label));
-            }
-
-            return controls.Add<TextBoxControl>(visibilityDelegate.Invoke(), (control) =>
-            {
-                control.Label = label;
-                control.Password = password;
-            });
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="visibilityDelegate">Set the visibility of this control based on a delegate (for example, you could use this to selectively show this control based on the current usage scenario.</param>
-        /// <param name="label"></param>
-        /// <param name="password"></param>
-        /// <param name="text"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddTextBox(this CredentialControlCollection controls, Func<CredentialFieldVisibilities> visibilityDelegate, string label, bool password, string text)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
-
-            if (visibilityDelegate == null)
-            {
-                throw new ArgumentNullException(nameof(visibilityDelegate));
-            }
-
-            if (label == null)
-            {
-                throw new ArgumentNullException(nameof(label));
-            }
-
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
-
-            return controls.Add<TextBoxControl>(visibilityDelegate.Invoke(), (control) =>
-            {
-                control.Label = label;
-                control.Password = password;
-                control.Text = text;
-            });
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="visibilityDelegate">Set the visibility of this control based on a delegate (for example, you could use this to selectively show this control based on the current usage scenario.</param>
-        /// <param name="label"></param>
-        /// <param name="password"></param>
-        /// <param name="textChanged"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddTextBox(this CredentialControlCollection controls, Func<CredentialFieldVisibilities> visibilityDelegate, string label, bool password, EventHandler<TextBoxControlTextChangedEventArgs> textChanged)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
-
-            if (visibilityDelegate == null)
-            {
-                throw new ArgumentNullException(nameof(visibilityDelegate));
-            }
-
-            if (label == null)
-            {
-                throw new ArgumentNullException(nameof(label));
-            }
-
-            if (textChanged == null)
-            {
-                throw new ArgumentNullException(nameof(textChanged));
-            }
-
-            return controls.Add<TextBoxControl>(visibilityDelegate.Invoke(), (control) =>
-            {
-                control.Label = label;
-                control.Password = password;
-
-                control.TextChanged += textChanged;
-            });
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="visibilityDelegate">Set the visibility of this control based on a delegate (for example, you could use this to selectively show this control based on the current usage scenario.</param>
-        /// <param name="label"></param>
-        /// <param name="password"></param>
-        /// <param name="text"></param>
-        /// <param name="textChanged"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddTextBox(this CredentialControlCollection controls, Func<CredentialFieldVisibilities> visibilityDelegate, string label, bool password, string text, EventHandler<TextBoxControlTextChangedEventArgs> textChanged)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
-
-            if (visibilityDelegate == null)
-            {
-                throw new ArgumentNullException(nameof(visibilityDelegate));
-            }
-
-            if (label == null)
-            {
-                throw new ArgumentNullException(nameof(label));
-            }
-
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
-
-            if (textChanged == null)
-            {
-                throw new ArgumentNullException(nameof(textChanged));
-            }
-
-            return controls.Add<TextBoxControl>(visibilityDelegate.Invoke(), (control) =>
-            {
-                control.Label = label;
-                control.Password = password;
-                control.Text = text;
-
-                control.TextChanged += textChanged;
-            });
-        }
-        
         #endregion
 
         #region Check Box Control
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="label"></param>
-        /// <param name="checked"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddCheckBox(this CredentialControlCollection controls, string label, bool @checked)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
+        //public static CredentialControlCollection AddCheckBox(this CredentialControlCollection controls, string label, Func<CredentialBase, bool> @checked)
+        //{
+        //    if (controls == null)
+        //    {
+        //        throw new ArgumentNullException(nameof(controls));
+        //    }
 
-            if (label == null)
-            {
-                throw new ArgumentNullException(nameof(label));
-            }
+        //    if (label == null)
+        //    {
+        //        throw new ArgumentNullException(nameof(label));
+        //    }
 
-            return controls.Add<CheckBoxControl>((control) =>
-            {
-                control.Label = label;
-                control.Checked = @checked;
-            });
-        }
+        //    return controls.Add<CheckBoxControl>((control) =>
+        //    {
+        //        control.Label = label;
+        //        control.Checked = @checked;
+        //    });
+        //}
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="visibility"></param>
-        /// <param name="label"></param>
-        /// <param name="checked"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddCheckBox(this CredentialControlCollection controls, CredentialFieldVisibilities visibility, string label, bool @checked)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
+        //public static CredentialControlCollection AddCheckBox(this CredentialControlCollection controls, Func<CredentialBase, CredentialFieldVisibilities> visibility, string label, Func<CredentialBase, bool> @checked)
+        //{
+        //    if (controls == null)
+        //    {
+        //        throw new ArgumentNullException(nameof(controls));
+        //    }
 
-            if (label == null)
-            {
-                throw new ArgumentNullException(nameof(label));
-            }
+        //    if (label == null)
+        //    {
+        //        throw new ArgumentNullException(nameof(label));
+        //    }
 
-            return controls.Add<CheckBoxControl>(visibility, (control) =>
-            {
-                control.Label = label;
-                control.Checked = @checked;
-            });
-        }
+        //    return controls.Add<CheckBoxControl>(visibility, (control) =>
+        //    {
+        //        control.Label = label;
+        //        control.Checked = @checked;
+        //    });
+        //}
         
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="label"></param>
-        /// <param name="checked"></param>
-        /// <param name="checkChanged"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddCheckBox(this CredentialControlCollection controls, string label, bool @checked, EventHandler<CheckBoxControlCheckChangedEventArgs> checkChanged)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
+        //public static CredentialControlCollection AddCheckBox(this CredentialControlCollection controls, string label, Func<CredentialBase, bool> @checked, Func<CredentialBase, EventHandler<CheckBoxControlCheckChangedEventArgs>> checkChanged)
+        //{
+        //    if (controls == null)
+        //    {
+        //        throw new ArgumentNullException(nameof(controls));
+        //    }
 
-            if (label == null)
-            {
-                throw new ArgumentNullException(nameof(label));
-            }
+        //    if (label == null)
+        //    {
+        //        throw new ArgumentNullException(nameof(label));
+        //    }
 
-            if (checkChanged == null)
-            {
-                throw new ArgumentNullException(nameof(checkChanged));
-            }
+        //    if (checkChanged == null)
+        //    {
+        //        throw new ArgumentNullException(nameof(checkChanged));
+        //    }
 
-            return controls.Add<CheckBoxControl>((control) =>
-            {
-                control.Label = label;
-                control.Checked = @checked;
+        //    return controls.Add<CheckBoxControl>((control) =>
+        //    {
+        //        control.Label = label;
+        //        control.Checked = @checked;
 
-                control.CheckChanged += checkChanged;
-            });
-        }
+        //        control.CheckChanged += checkChanged;
+        //    });
+        //}
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="visibility"></param>
-        /// <param name="label"></param>
-        /// <param name="checked"></param>
-        /// <param name="checkChanged"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddCheckBox(this CredentialControlCollection controls, CredentialFieldVisibilities visibility, string label, bool @checked, EventHandler<CheckBoxControlCheckChangedEventArgs> checkChanged)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
+        //public static CredentialControlCollection AddCheckBox(this CredentialControlCollection controls, Func<CredentialBase, CredentialFieldVisibilities> visibility, string label, Func<CredentialBase, bool> @checked, Func<CredentialBase, EventHandler<CheckBoxControlCheckChangedEventArgs>> checkChanged)
+        //{
+        //    if (controls == null)
+        //    {
+        //        throw new ArgumentNullException(nameof(controls));
+        //    }
 
-            if (label == null)
-            {
-                throw new ArgumentNullException(nameof(label));
-            }
+        //    if (label == null)
+        //    {
+        //        throw new ArgumentNullException(nameof(label));
+        //    }
 
-            if (checkChanged == null)
-            {
-                throw new ArgumentNullException(nameof(checkChanged));
-            }
+        //    if (checkChanged == null)
+        //    {
+        //        throw new ArgumentNullException(nameof(checkChanged));
+        //    }
 
-            return controls.Add<CheckBoxControl>(visibility, (control) =>
-            {
-                control.Label = label;
-                control.Checked = @checked;
+        //    return controls.Add<CheckBoxControl>(visibility, (control) =>
+        //    {
+        //        control.Label = label;
+        //        control.Checked = @checked;
 
-                control.CheckChanged += checkChanged;
-            });
-        }
-        
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="visibilityDelegate">Set the visibility of this control based on a delegate (for example, you could use this to selectively show this control based on the current usage scenario.</param>
-        /// <param name="label"></param>
-        /// <param name="checked"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddCheckBox(this CredentialControlCollection controls, Func<CredentialFieldVisibilities> visibilityDelegate, string label, bool @checked)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
-
-            if (visibilityDelegate == null)
-            {
-                throw new ArgumentNullException(nameof(visibilityDelegate));
-            }
-
-            if (label == null)
-            {
-                throw new ArgumentNullException(nameof(label));
-            }
-
-            return controls.Add<CheckBoxControl>(visibilityDelegate.Invoke(), (control) =>
-            {
-                control.Label = label;
-                control.Checked = @checked;
-            });
-        }
-        
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="visibilityDelegate">Set the visibility of this control based on a delegate (for example, you could use this to selectively show this control based on the current usage scenario.</param>
-        /// <param name="label"></param>
-        /// <param name="checked"></param>
-        /// <param name="checkChanged"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddCheckBox(this CredentialControlCollection controls, Func<CredentialFieldVisibilities> visibilityDelegate, string label, bool @checked, EventHandler<CheckBoxControlCheckChangedEventArgs> checkChanged)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
-
-            if (visibilityDelegate == null)
-            {
-                throw new ArgumentNullException(nameof(visibilityDelegate));
-            }
-
-            if (label == null)
-            {
-                throw new ArgumentNullException(nameof(label));
-            }
-
-            if (checkChanged == null)
-            {
-                throw new ArgumentNullException(nameof(checkChanged));
-            }
-
-            return controls.Add<CheckBoxControl>(visibilityDelegate.Invoke(), (control) =>
-            {
-                control.Label = label;
-                control.Checked = @checked;
-
-                control.CheckChanged += checkChanged;
-            });
-        }
+        //        control.CheckChanged += checkChanged;
+        //    });
+        //}
         
         #endregion
 
         #region Link Control
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="text"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddLink(this CredentialControlCollection controls, string text)
+        public static CredentialControlCollection AddLink(this CredentialControlCollection controls, Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, string> text)
         {
             if (controls == null)
             {
@@ -982,20 +460,12 @@ namespace JamieHighfield.CredentialProvider.Controls
                 throw new ArgumentNullException(nameof(text));
             }
 
-            return controls.Add<LinkControl>((control) =>
-            {
-                control.Text = text;
-            });
+            controls.Add(new LinkControl(visibility, text));
+
+            return controls;
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="visibility"></param>
-        /// <param name="text"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddLink(this CredentialControlCollection controls, CredentialFieldVisibilities visibility, string text)
+        public static CredentialControlCollection AddLink(this CredentialControlCollection controls, Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, string> text, EventHandler<LinkControlClickedEventArgs> clicked)
         {
             if (controls == null)
             {
@@ -1007,156 +477,24 @@ namespace JamieHighfield.CredentialProvider.Controls
                 throw new ArgumentNullException(nameof(text));
             }
 
-            return controls.Add<LinkControl>(visibility, (control) =>
+            if (clicked == null)
             {
-                control.Text = text;
-            });
+                throw new ArgumentNullException(nameof(clicked));
+            }
+
+            LinkControl linkControl = new LinkControl(visibility, text);
+
+            linkControl.Clicked += clicked;
+
+            controls.Add(linkControl);
+
+            return controls;
         }
         
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="text"></param>
-        /// <param name="clicked"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddLink(this CredentialControlCollection controls, string text, EventHandler<LinkControlClickedEventArgs> clicked)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
-
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
-
-            if (clicked == null)
-            {
-                throw new ArgumentNullException(nameof(clicked));
-            }
-
-            return controls.Add<LinkControl>((control) =>
-            {
-                control.Text = text;
-
-                control.Clicked += clicked;
-            });
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="visibility"></param>
-        /// <param name="text"></param>
-        /// <param name="clicked"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddLink(this CredentialControlCollection controls, CredentialFieldVisibilities visibility, string text, EventHandler<LinkControlClickedEventArgs> clicked)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
-
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
-
-            if (clicked == null)
-            {
-                throw new ArgumentNullException(nameof(clicked));
-            }
-
-            return controls.Add<LinkControl>(visibility, (control) =>
-            {
-                control.Text = text;
-
-                control.Clicked += clicked;
-            });
-        }
-        
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="visibilityDelegate">Set the visibility of this control based on a delegate (for example, you could use this to selectively show this control based on the current usage scenario.</param>
-        /// <param name="text"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddLink(this CredentialControlCollection controls, Func<CredentialFieldVisibilities> visibilityDelegate, string text)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
-
-            if (visibilityDelegate == null)
-            {
-                throw new ArgumentNullException(nameof(visibilityDelegate));
-            }
-
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
-
-            return controls.Add<LinkControl>(visibilityDelegate.Invoke(), (control) =>
-            {
-                control.Text = text;
-            });
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="visibilityDelegate">Set the visibility of this control based on a delegate (for example, you could use this to selectively show this control based on the current usage scenario.</param>
-        /// <param name="text"></param>
-        /// <param name="clicked"></param>
-        /// <returns></returns>
-        public static CredentialControlCollection AddLink(this CredentialControlCollection controls, Func<CredentialFieldVisibilities> visibilityDelegate, string text, EventHandler<LinkControlClickedEventArgs> clicked)
-        {
-            if (controls == null)
-            {
-                throw new ArgumentNullException(nameof(controls));
-            }
-
-            if (visibilityDelegate == null)
-            {
-                throw new ArgumentNullException(nameof(visibilityDelegate));
-            }
-
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
-
-            if (clicked == null)
-            {
-                throw new ArgumentNullException(nameof(clicked));
-            }
-
-            return controls.Add<LinkControl>(visibilityDelegate.Invoke(), (control) =>
-            {
-                control.Text = text;
-
-                control.Clicked += clicked;
-            });
-        }
-
         #endregion
 
         #region Button
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="label"></param>
-        /// <param name="adjacentControl"></param>
-        /// <returns></returns>
         public static CredentialControlCollection AddButton(this CredentialControlCollection controls, string label, CredentialControlBase adjacentControl)
         {
             if (controls == null)
@@ -1181,14 +519,6 @@ namespace JamieHighfield.CredentialProvider.Controls
             });
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="visibility"></param>
-        /// <param name="label"></param>
-        /// <param name="adjacentControl"></param>
-        /// <returns></returns>
         public static CredentialControlCollection AddButton(this CredentialControlCollection controls, CredentialFieldVisibilities visibility, string label, CredentialControlBase adjacentControl)
         {
             if (controls == null)
@@ -1213,14 +543,6 @@ namespace JamieHighfield.CredentialProvider.Controls
             });
         }
         
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="controls"></param>
-        /// <param name="visibilityDelegate">Set the visibility of this control based on a delegate (for example, you could use this to selectively show this control based on the current usage scenario.</param>
-        /// <param name="label"></param>
-        /// <param name="adjacentControl"></param>
-        /// <returns></returns>
         public static CredentialControlCollection AddButton(this CredentialControlCollection controls, Func<CredentialFieldVisibilities> visibilityDelegate, string label, CredentialControlBase adjacentControl)
         {
             if (controls == null)

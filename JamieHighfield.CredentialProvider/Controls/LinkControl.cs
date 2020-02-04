@@ -9,10 +9,10 @@
  * 
  */
 
-using System;
 using JamieHighfield.CredentialProvider.Controls.Events;
+using JamieHighfield.CredentialProvider.Credentials;
 using JamieHighfield.CredentialProvider.Interop;
-using JamieHighfield.CredentialProvider.Providers;
+using System;
 
 namespace JamieHighfield.CredentialProvider.Controls
 {
@@ -21,16 +21,39 @@ namespace JamieHighfield.CredentialProvider.Controls
         internal LinkControl()
             : base(CredentialControlTypes.Link)
         { }
-        
+
+        internal LinkControl(Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, string> text)
+            : base(CredentialControlTypes.Link, visibility)
+        {
+            _text = new DynamicPropertyStore<string>(this, text);
+        }
+
         #region Variables
 
-
+        private DynamicPropertyStore<string> _text;
 
         #endregion
 
         #region Properties
+        
+        /// <summary>
+        /// Gets or sets the text for this <see cref="LabelControl"/>.
+        /// </summary>
+        public string Text
+        {
+            get
+            {
+                return _text.Value;
+            }
+            set
+            {
+                _text.Value = value;
 
-        public string Text { get; set; }
+                //TextChanged?.Invoke(this, new TextBoxControlTextChangedEventArgs(Credential, this));
+
+                Credential?.Events?.SetFieldString(Credential, (uint)Field.FieldId, Text);
+            }
+        }
 
         #endregion
 

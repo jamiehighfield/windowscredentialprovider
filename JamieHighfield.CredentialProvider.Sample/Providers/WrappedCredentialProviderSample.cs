@@ -1,4 +1,5 @@
 ﻿using JamieHighfield.CredentialProvider.Controls;
+using JamieHighfield.CredentialProvider.Logging;
 using JamieHighfield.CredentialProvider.Providers;
 using JamieHighfield.CredentialProvider.Sample.Credentials;
 using System.Runtime.InteropServices;
@@ -6,10 +7,10 @@ using System.Windows.Forms;
 
 namespace JamieHighfield.CredentialProvider.Sample.Providers
 {
-    //[ComVisible(true)]
-    //[Guid("5A09A8E2-2138-4F7C-BF74-3AD9DD710123")]
-    //[ClassInterface(ClassInterfaceType.None)]
-    //[ProgId("WrappedCredentialProviderSample")]
+    [ComVisible(true)]
+    [Guid("5A09A8E2-2138-4F7C-BF74-3AD9DD710123")]
+    [ClassInterface(ClassInterfaceType.None)]
+    [ProgId("WrappedCredentialProviderSample")]
     public sealed class WrappedCredentialProviderSample : CredentialProviderSetUserArrayBase
     {
         public WrappedCredentialProviderSample()
@@ -19,7 +20,9 @@ namespace JamieHighfield.CredentialProvider.Sample.Providers
                 //will appear at the end of the wrapped fields.
 
                 controls
-                    .AddLink(CredentialFieldVisibilities.SelectedCredential, "Reset Password", (_sender, _eventArgs) =>
+                    .AddLink((credential) => CredentialFieldVisibilities.SelectedCredential,
+                    (credential) => "Reset Password",
+                    (_sender, _eventArgs) =>
                     {
                         //Use the main window handle parsed in from the current environment.
 
@@ -34,7 +37,9 @@ namespace JamieHighfield.CredentialProvider.Sample.Providers
 
                 return new WrappedCredentialSample();
             })
-        { }
+        {
+            GlobalLogger.Enabled = true;
+        }
 
         #region Variables
 

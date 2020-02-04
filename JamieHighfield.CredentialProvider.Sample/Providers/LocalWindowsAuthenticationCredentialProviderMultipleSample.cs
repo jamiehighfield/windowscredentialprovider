@@ -25,14 +25,14 @@ namespace JamieHighfield.CredentialProvider.Sample.Providers
                 //'CredentialBase.Initiated' method.
 
                 credentials
-                    .Add(new LocalWindowsAuthenticationCredentialMultipleSample(Environment.MachineName + @"\jsmith"))
-                    .Add(new LocalWindowsAuthenticationCredentialMultipleSample(Environment.MachineName + @"\jdoe"));
+                    .Add(new LocalWindowsAuthenticationCredentialMultipleSample(Resources.PlaceholderImage1, Environment.MachineName + @"\jsmith"))
+                    .Add(new LocalWindowsAuthenticationCredentialMultipleSample(Resources.PlaceholderImage2, Environment.MachineName + @"\jdoe"));
             }, (environment, controls) =>
             {
                 //Add controls as appropriate that this credential provider will expose.
 
                 controls
-                    .AddImage(() =>
+                    .AddImage((credential) =>
                     {
                         //We want different behaviour here. If the usage scenario is the credentials dialog, we only want to
                         //display the credential image on the deselected credential - matching the default behaviour of Windows.
@@ -41,14 +41,18 @@ namespace JamieHighfield.CredentialProvider.Sample.Providers
                         OperatingSystem currentOperatingSystem = environment.GetCurrentOperatingSystem();
 
                         if (environment.CurrentUsageScenario == CredentialProviderUsageScenarios.CredentialsDialog
-                            && (currentOperatingSystem.Version.Major >= 6 && currentOperatingSystem.Version.Minor >= 2))
+                            && (currentOperatingSystem.Version.Major >= 6 && currentOperatingSystem.Version.Minor >= 2)) //Windows 8/Windows Server 2012
                         {
                             return CredentialFieldVisibilities.DeselectedCredential;
                         }
 
                         return CredentialFieldVisibilities.Both;
-                    }, Resources.PlaceholderImage1)
-                    .AddLabel(() =>
+                    },
+                    (credential) =>
+                    {
+                        return Resources.PlaceholderImage1;
+                    })
+                    .AddLabel((credential) =>
                     {
                         //We want different behaviour here. If the usage scenario is the credentials dialog, we only want to
                         //display the credential title on the deselected credential - matching the default behaviour of Windows.
@@ -59,10 +63,19 @@ namespace JamieHighfield.CredentialProvider.Sample.Providers
                         }
 
                         return CredentialFieldVisibilities.Both;
-                    }, LabelControlSizes.Large, "Local Windows Authentication")
-                    .AddTextBox(CredentialFieldVisibilities.SelectedCredential, "User name", false)
-                    .AddTextBox(CredentialFieldVisibilities.SelectedCredential, "Password", true)
-                    .AddLink(CredentialFieldVisibilities.SelectedCredential, "Reset Password", (sender, eventArgs) =>
+                    }, (credential) =>
+                    {
+                        return "Local Windows Authentication";
+                    }, LabelControlSizes.Large)
+                    .AddTextBox((credential) => CredentialFieldVisibilities.SelectedCredential,
+                    (credential) => "User name",
+                    (credential) => string.Empty)
+                    .AddPasswordTextBox((credential) => CredentialFieldVisibilities.SelectedCredential,
+                    (credential) => "Password",
+                    (credential) => string.Empty)
+                    .AddLink((credential) => CredentialFieldVisibilities.SelectedCredential,
+                    (credential) => "Reset Password",
+                    (sender, eventArgs) =>
                     {
                         //Use the main window handle parsed in from the current environment.
 
@@ -72,14 +85,13 @@ namespace JamieHighfield.CredentialProvider.Sample.Providers
 
                         if (string.IsNullOrEmpty(eventArgs.Credential.Controls.FirstOfControlType<TextBoxControl>().Text))
                         {
-                            MessageBox.Show("Please enter a username to reset your password.");
+                            MessageBox.Show(environment.MainWindowHandle, "Please enter a username to reset your password.");
                         }
                         else
                         {
-                            MessageBox.Show(environment.MainWindowHandle, "Reset Password for user '" + eventArgs.Credential.Controls.FirstOfControlType<TextBoxControl>().Text + "'");
+                            MessageBox.Show(environment.MainWindowHandle, "Reset Password for user '" + eventArgs.Credential.Controls.FirstOfControlType<TextBoxControl>().Text + "'.");
                         }
                     });
-                    //.AddButton("Login", controls.FirstOfControlType<TextBoxControl>(1));
             })
         {
             //Enable logging for diagnostic purposes.

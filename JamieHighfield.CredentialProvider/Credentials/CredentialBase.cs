@@ -67,7 +67,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// <summary>
         /// Gets the handle of the main window for the parent process.
         /// </summary>
-        public WindowHandle MainWindowHandle => CredentialProvider.MainWindowHandle;
+        public WindowHandle MainWindowHandle { get; private set; }
 
         #endregion
 
@@ -178,6 +178,19 @@ namespace JamieHighfield.CredentialProvider.Credentials
                 Events = new EventsWrapper(this, pcpce);
 
                 Marshal.AddRef(Marshal.GetIUnknownForObject(pcpce));
+
+                int result = Events.OnCreatingWindow(out _RemotableHandle remotableHandle);
+
+                if (result != HRESULT.S_OK)
+                {
+                    return result;
+                }
+
+                IntPtr handle = Marshal.AllocHGlobal(Marshal.SizeOf(remotableHandle));
+
+                Marshal.StructureToPtr(remotableHandle, handle, false);
+
+                MainWindowHandle = new WindowHandle(handle);
             }
 
             if (UnderlyingCredential != null)
@@ -189,8 +202,6 @@ namespace JamieHighfield.CredentialProvider.Credentials
                     return result;
                 }
             }
-
-            Initialise();
 
             return HRESULT.S_OK;
         }

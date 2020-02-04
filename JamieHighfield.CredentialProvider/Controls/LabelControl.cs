@@ -17,15 +17,43 @@ using System;
 
 namespace JamieHighfield.CredentialProvider.Controls
 {
+    /// <summary>
+    /// A non-interactable text control.
+    /// </summary>
     public sealed class LabelControl : CredentialControlBase
     {
         internal LabelControl()
             : base(CredentialControlTypes.Label)
-        { }
+        {
 
+        }
+
+        internal LabelControl(Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, string> text)
+            : base(CredentialControlTypes.Label, visibility)
+        {
+            if (text == null)
+            {
+                throw new ArgumentNullException(nameof(text));
+            }
+
+            _text = new DynamicPropertyStore<string>(this, text);
+        }
+
+        internal LabelControl(Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, string> text, LabelControlSizes size)
+            :base(CredentialControlTypes.Label, visibility)
+        {
+            if (text == null)
+            {
+                throw new ArgumentNullException(nameof(text));
+            }
+
+            _text = new DynamicPropertyStore<string>(this, text);
+            Size = size;
+        }
+        
         #region Variables
-
-        private string _text;
+        
+        private DynamicPropertyStore<string> _text;
 
         #endregion
 
@@ -34,7 +62,7 @@ namespace JamieHighfield.CredentialProvider.Controls
         /// <summary>
         /// Gets the size of either <see cref="LabelControlSizes.Small"/> or <see cref="LabelControlSizes.Large"/> for this <see cref="LabelControl"/>.
         /// </summary>
-        public LabelControlSizes Size { get; internal set; }
+        public LabelControlSizes Size { get; private set; }
 
         /// <summary>
         /// Gets or sets the text for this <see cref="LabelControl"/>.
@@ -43,18 +71,15 @@ namespace JamieHighfield.CredentialProvider.Controls
         {
             get
             {
-                return _text;
+                return _text.Value;
             }
             set
             {
-                _text = value;
+                _text.Value = value;
 
                 TextChanged?.Invoke(this, new LabelControlTextChangedEventArgs(Credential, this));
 
-                if (Credential != null)
-                {
-                    Credential.Events.SetFieldString(Credential, (uint)Field.FieldId, Text);
-                }
+                Credential?.Events?.SetFieldString(Credential, (uint)Field.FieldId, Text);
             }
         }
 
@@ -76,7 +101,7 @@ namespace JamieHighfield.CredentialProvider.Controls
 
         internal void UpdateText(string text)
         {
-            _text = text;
+            _text.Value = text;
 
             TextChanged?.Invoke(this, new LabelControlTextChangedEventArgs(Credential, this));
         }
@@ -95,6 +120,9 @@ namespace JamieHighfield.CredentialProvider.Controls
 
         #region Events
 
+        /// <summary>
+        /// This event is fired when the text for this label is changed.
+        /// </summary>
         public event EventHandler<LabelControlTextChangedEventArgs> TextChanged;
 
         #endregion

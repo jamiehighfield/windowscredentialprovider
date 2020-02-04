@@ -115,12 +115,13 @@ namespace JamieHighfield.CredentialProvider.RegistrationUI
             // 
             // sbrMain
             // 
-            this.sbrMain.Location = new System.Drawing.Point(0, 664);
+            this.sbrMain.Location = new System.Drawing.Point(0, 359);
+            this.sbrMain.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.sbrMain.Name = "sbrMain";
             this.sbrMain.Panels.AddRange(new System.Windows.Forms.StatusBarPanel[] {
             this.sbpStatus});
             this.sbrMain.ShowPanels = true;
-            this.sbrMain.Size = new System.Drawing.Size(1069, 36);
+            this.sbrMain.Size = new System.Drawing.Size(583, 20);
             this.sbrMain.SizingGrip = false;
             this.sbrMain.TabIndex = 0;
             this.sbrMain.Text = "statusBar1";
@@ -130,7 +131,7 @@ namespace JamieHighfield.CredentialProvider.RegistrationUI
             this.sbpStatus.AutoSize = System.Windows.Forms.StatusBarPanelAutoSize.Spring;
             this.sbpStatus.Name = "sbpStatus";
             this.sbpStatus.Text = "Done";
-            this.sbpStatus.Width = 1069;
+            this.sbpStatus.Width = 583;
             // 
             // pnlMain
             // 
@@ -138,8 +139,9 @@ namespace JamieHighfield.CredentialProvider.RegistrationUI
             this.pnlMain.Controls.Add(this.lvwMain);
             this.pnlMain.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlMain.Location = new System.Drawing.Point(0, 0);
+            this.pnlMain.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.pnlMain.Name = "pnlMain";
-            this.pnlMain.Size = new System.Drawing.Size(1069, 664);
+            this.pnlMain.Size = new System.Drawing.Size(583, 359);
             this.pnlMain.TabIndex = 1;
             // 
             // lvwMain
@@ -153,9 +155,10 @@ namespace JamieHighfield.CredentialProvider.RegistrationUI
             this.lvwMain.FullRowSelect = true;
             this.lvwMain.HideSelection = false;
             this.lvwMain.Location = new System.Drawing.Point(0, 0);
+            this.lvwMain.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.lvwMain.MultiSelect = false;
             this.lvwMain.Name = "lvwMain";
-            this.lvwMain.Size = new System.Drawing.Size(1065, 660);
+            this.lvwMain.Size = new System.Drawing.Size(579, 355);
             this.lvwMain.TabIndex = 0;
             this.lvwMain.UseCompatibleStateImageBehavior = false;
             this.lvwMain.View = System.Windows.Forms.View.Details;
@@ -174,13 +177,14 @@ namespace JamieHighfield.CredentialProvider.RegistrationUI
             // 
             // frmMain
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(11F, 24F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1069, 700);
+            this.ClientSize = new System.Drawing.Size(583, 379);
             this.Controls.Add(this.pnlMain);
             this.Controls.Add(this.sbrMain);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.MaximizeBox = false;
             this.Menu = this.mmuMain;
             this.Name = "frmMain";
