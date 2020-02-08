@@ -4,6 +4,12 @@ This project looks to open the oportunity to easily create Windows credential pr
 
 Nonetheless, even when using COM interopability and platform invocation, the .NET equivalent interfaces created aren't very friendly for a managed language. This project builds on this by creating an object-oriented and functional API.
 
+## Features
+
+This library fully supports the `ICredentialProvider` interface from the Microsoft documentation, including:
+
+- 
+
 ## Installation
 
 This library can be installed either by compiling the source yourself or by installing the NuGet package:
