@@ -6,7 +6,7 @@ Nonetheless, even when using COM interopability and platform invocation, the .NE
 
 ## Installation
 
-This library can be installed either by compiling the source yourself or by installing the NuGet package.
+This library can be installed either by compiling the source yourself or by installing the NuGet package:
 
 `Install-Package Windows-Credential-Provider`
 
