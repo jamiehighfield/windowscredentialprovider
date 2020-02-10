@@ -16,6 +16,10 @@ This library fully supports the `ICredentialProvider` interface as part of the W
 - Connectable credential providers, used for any credential provider that wants to connect to a network, with additional UI processing
 - Fully supports wrapping existing credential providers, including built-in Windows credential providers
 
+## Screenshots
+
+![Sample Wrap Credential Provider](wrapcredentialprovider.png)
+
 ## Installation
 
 This library can be installed either by compiling the source yourself or by installing the NuGet package:
