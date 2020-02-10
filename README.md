@@ -18,6 +18,12 @@ This library fully supports the `ICredentialProvider` interface as part of the W
 
 ## Screenshots
 
+The following screenshots are examples of credential providers included within this project, used in a variety of different scenarios.
+
+### Wrap Credential Provider
+
+This screenshot wraps the existing Windows password credential provider, and adds a link labelled 'Reset Password', enabling the user to reset their password. Note: this functionality is not included.
+
 ![Sample Wrap Credential Provider](wrapcredentialprovider.png)
 
 ## Installation
