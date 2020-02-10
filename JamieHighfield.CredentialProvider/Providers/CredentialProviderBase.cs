@@ -10,12 +10,16 @@
  */
 
 using JamieHighfield.CredentialProvider.Controls;
+using JamieHighfield.CredentialProvider.Controls.Descriptors;
+using JamieHighfield.CredentialProvider.Controls.New;
 using JamieHighfield.CredentialProvider.Credentials;
 using JamieHighfield.CredentialProvider.Interfaces;
 using JamieHighfield.CredentialProvider.Interop;
 using JamieHighfield.CredentialProvider.Logging;
 using JamieHighfield.CredentialProvider.Providers.Exceptions;
+using JamieHighfield.CredentialProvider.Providers.Interfaces;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
@@ -32,77 +36,29 @@ namespace JamieHighfield.CredentialProvider.Providers
     [ComVisible(true)]
     [Guid("509E66FD-50EA-4863-9132-2ED365F12C0B")]
     [ClassInterface(ClassInterfaceType.None)]
-    public abstract class CredentialProviderBase : ICredentialProvider, ICurrentEnvironment
+    public abstract class CredentialProviderBase<TCredentialType> : ManagedCredentialProvider, ICredentialProvider, ICurrentEnvironment
+        where TCredentialType : CredentialBase
     {
-        /// <summary>
-        /// Instantiate a new <see cref="CredentialProviderBase"/> object.
-        /// </summary>
-        protected CredentialProviderBase()
-            : this(CredentialProviderUsageScenarios.All)
-        { }
-
         /// <summary>
         /// Instantiate a new <see cref="CredentialProviderBase"/> object.
         /// </summary>
         /// <param name="usageScenarios">The <see cref="CredentialProviderUsageScenarios"/> that this credential provider will support when requested by Windows.</param>
         protected CredentialProviderBase(CredentialProviderUsageScenarios usageScenarios)
-            : this(usageScenarios, null, null)
-        { }
-
-        /// <summary>
-        /// Instantiate a new <see cref="CredentialProviderBase"/> object.
-        /// </summary>
-        /// <param name="credentialsDelegate">The <see cref="Action{CredentialCollection}"/> that will be invoked upon construction.</param>
-        /// <param name="controlsDelegate">The <see cref="Action{CredentialControlCollection}"/> that will be invoked upon construction.</param>
-        protected CredentialProviderBase(Action<CredentialCollection> credentialsDelegate, Action<ICurrentEnvironment, CredentialControlCollection> controlsDelegate)
-            : this(CredentialProviderUsageScenarios.All, credentialsDelegate, controlsDelegate)
-        { }
-
-        /// <summary>
-        /// Instantiate a new <see cref="CredentialProviderBase"/> object.
-        /// </summary>
-        /// <param name="usageScenarios">The <see cref="CredentialProviderUsageScenarios"/> that this credential provider will support when requested by Windows.</param>
-        /// <param name="credentialsDelegate">The <see cref="Action{CredentialCollection}"/> that will be invoked upon construction.</param>
-        /// <param name="controlsDelegate">The <see cref="Action{CredentialControlCollection}"/> that will be invoked upon construction.</param>
-        protected CredentialProviderBase(CredentialProviderUsageScenarios usageScenarios, Action<CredentialCollection> credentialsDelegate, Action<ICurrentEnvironment, CredentialControlCollection> controlsDelegate)
         {
             SupportedUsageScenarios = usageScenarios;
-            CredentialsDelegate = credentialsDelegate;
-            ControlsDelegate = controlsDelegate;
         }
 
         /// <summary>
         /// Instantiate a new <see cref="CredentialProviderBase"/> object that will wrap an existing credential provider.
         /// </summary>
         /// <param name="underlyingCredentialProviderGuid">The COM <see cref="ComGuid"/> of the credential provider that this credential provider should wrap.</param>
-        /// <param name="incomingCredentialManipulator">Manipulate an incoming credential provider from the wrapped credential provider.</param>
-        protected CredentialProviderBase(Guid underlyingCredentialProviderGuid, Func<ICurrentEnvironment, CredentialBase> incomingCredentialManipulator)
-            : this(underlyingCredentialProviderGuid, null, incomingCredentialManipulator)
-        { }
-
-        /// <summary>
-        /// Instantiate a new <see cref="CredentialProviderBase"/> object that will wrap an existing credential provider.
-        /// </summary>
-        /// <param name="underlyingCredentialProviderGuid">The COM <see cref="ComGuid"/> of the credential provider that this credential provider should wrap.</param>
-        /// <param name="controlsDelegate">The <see cref="Action{CredentialControlCollection}"/> that will be invoked when fields are requested by Windows.</param>
-        /// <param name="incomingCredentialManipulator">Manipulate an incoming credential provider from the wrapped credential provider.</param>
-        protected CredentialProviderBase(Guid underlyingCredentialProviderGuid, Action<ICurrentEnvironment, CredentialControlCollection> controlsDelegate, Func<ICurrentEnvironment, CredentialBase> incomingCredentialManipulator)
-            : this(underlyingCredentialProviderGuid, CredentialProviderUsageScenarios.All, controlsDelegate, incomingCredentialManipulator)
-        { }
-
-        /// <summary>
-        /// Instantiate a new <see cref="CredentialProviderBase"/> object that will wrap an existing credential provider.
-        /// </summary>
-        /// <param name="underlyingCredentialProviderGuid">The COM <see cref="ComGuid"/> of the credential provider that this credential provider should wrap.</param>
         /// <param name="usageScenarios">The <see cref="CredentialProviderUsageScenarios"/> that this credential provider will support when requested by Windows.</param>
         /// <param name="controlsDelegate">The <see cref="Action{CredentialControlCollection}"/> that will be invoked upon construction.</param>
         /// <param name="incomingCredentialManipulator">Manipulate an incoming credential provider from the wrapped credential provider.</param>
-        protected CredentialProviderBase(Guid underlyingCredentialProviderGuid, CredentialProviderUsageScenarios usageScenarios, Action<ICurrentEnvironment, CredentialControlCollection> controlsDelegate, Func<ICurrentEnvironment, CredentialBase> incomingCredentialManipulator)
+        protected CredentialProviderBase(Guid underlyingCredentialProviderGuid, CredentialProviderUsageScenarios usageScenarios)
         {
             UnderlyignCredentialProviderGuid = underlyingCredentialProviderGuid;
             SupportedUsageScenarios = usageScenarios;
-            ControlsDelegate = controlsDelegate;
-            IncomingCredentialManipulator = incomingCredentialManipulator ?? throw new ArgumentNullException(nameof(incomingCredentialManipulator));
         }
 
         #region Variables
@@ -116,57 +72,40 @@ namespace JamieHighfield.CredentialProvider.Providers
         #region ICurrentEnvironment
 
         /// <summary>
-        /// Gets the <see cref="CredentialProviderUsageScenarios"/> that this credential provider will support when requested by Windows.
-        /// </summary>
-        public CredentialProviderUsageScenarios SupportedUsageScenarios { get; }
-
-        /// <summary>
-        /// Gets the <see cref="CredentialProviderUsageScenarios"/> representing the current scenario under which the credential provider is operating.
-        /// </summary>
-        public CredentialProviderUsageScenarios CurrentUsageScenario { get; private set; }
-
-        /// <summary>
         /// Gets the handle of the main window for the parent process.
         /// </summary>
         public WindowHandle MainWindowHandle => new WindowHandle(Process.GetCurrentProcess().MainWindowHandle);
+
+        #endregion
         
-        #endregion
-
-
-
-
-
-        #region Credential Provider Configuration
+        /// <summary>
+        /// Gets or sets the control descriptors.
+        /// </summary>
+        public DescriptorCollection Descriptors { get; private set; }
 
         /// <summary>
-        /// Gets the <see cref="Guid"/> of the credential provider.
+        /// Gets or sets the credentials.
         /// </summary>
-        public Guid ComGuid
-        {
-            get
-            {
-                return Guid.Parse(((GuidAttribute)GetType()
-                    .GetCustomAttributes(false)
-                    .Where((attribute) => attribute is GuidAttribute)
-                    .FirstOrDefault()).Value);
-            }
-        }
-
+        public CredentialCollection<TCredentialType> Credentials { get; private set; }
 
         /// <summary>
-        /// Gets the 
+        /// Gets or sets the delegate used for initialising control descriptors.
         /// </summary>
-        internal CredentialCollection Credentials { get; private set; }
+        public Action<ICurrentEnvironment, DescriptorCollection> DescriptorsFactory { get; set; }
 
-        private ReadOnlyCredentialControlCollection Controls { get; set; }
+        /// <summary>
+        /// Gets or sets the delegate used for initialising credentials.
+        /// </summary>
+        public Action<CredentialCollection<TCredentialType>> CredentialsFactory { get; set; }
 
-        #endregion
+        /// <summary>
+        /// Gets or sets the delegate used for initialising credentials from wrapped credential providers.
+        /// </summary>
+        public Func<ICurrentEnvironment, TCredentialType> IncomingCredentialFactory { get; set; }
 
         #region Underlying Credential Provider Configuration
 
         private Guid UnderlyignCredentialProviderGuid { get; }
-
-        internal ICredentialProvider UnderlyingCredentialProvider { get; private set; }
 
         internal Func<ICurrentEnvironment, CredentialBase> IncomingCredentialManipulator { get; }
 
@@ -175,14 +114,11 @@ namespace JamieHighfield.CredentialProvider.Providers
         internal ICredentialProviderEvents Events { get; private set; }
 
 
-        public CredentialBase CurrentCredential { get; internal set; }
 
-        private Action<CredentialCollection> CredentialsDelegate { get; }
-
-
-        private Action<ICurrentEnvironment, CredentialControlCollection> ControlsDelegate { get; }
-
-        internal CredentialFieldCollection Fields
+        /// <summary>
+        /// Gets an internal set of <see cref="NewCredentialField"/> used to set the layout of the credential.
+        /// </summary>
+        internal IEnumerable<NewCredentialField> Fields
         {
             get
             {
@@ -198,22 +134,87 @@ namespace JamieHighfield.CredentialProvider.Providers
 
                     if (result != HRESULT.S_OK)
                     {
-                        return new CredentialFieldCollection();
+                        yield break;
                     }
 
                     currentFieldId = (int)count;
                 }
 
-                foreach (CredentialControlBase control in Controls)
+                foreach (DescriptorBase controlDescriptor in Descriptors)
                 {
-                    CredentialField field = new CredentialField(control, currentFieldId);
+                    _CREDENTIAL_PROVIDER_FIELD_TYPE type = default(_CREDENTIAL_PROVIDER_FIELD_TYPE);
+                    _CREDENTIAL_PROVIDER_FIELD_STATE state = default(_CREDENTIAL_PROVIDER_FIELD_STATE);
 
-                    credentialFields.Add(field);
+                    string label = string.Empty;
+
+                    if (controlDescriptor is LabelDescriptor)
+                    {
+                        if (((LabelDescriptorOptions)controlDescriptor.Options).Size == LabelControlSizes.Small)
+                        {
+                            type = _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_SMALL_TEXT;
+                        }
+                        else
+                        {
+                            type = _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_LARGE_TEXT;
+                        }
+                    }
+                    else if (controlDescriptor is TextBoxDescriptor)
+                    {
+                        if (((TextBoxDescriptorOptions)controlDescriptor.Options).Password == true)
+                        {
+                            type = _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_PASSWORD_TEXT;
+                        }
+                        else
+                        {
+                            type = _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_EDIT_TEXT;
+                        }
+
+                        label = ((TextBoxDescriptorOptions)controlDescriptor.Options).Label;
+                    }
+                    else if (controlDescriptor is LinkDescriptor)
+                    {
+                        type = _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_COMMAND_LINK;
+                    }
+                    else if (controlDescriptor is ImageDescriptor)
+                    {
+                        type = _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_TILE_IMAGE;
+                    }
+                    else if (controlDescriptor is CheckBoxDescriptor)
+                    {
+                        type = _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_CHECKBOX;
+                    }
+                    else if (controlDescriptor is ButtonDescriptor)
+                    {
+                        type = _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_SUBMIT_BUTTON;
+                    }
+
+                    if (controlDescriptor.Options.Visibility == CredentialFieldVisibilities.SelectedCredential)
+                    {
+                        state = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_SELECTED_TILE;
+                    }
+                    else if (controlDescriptor.Options.Visibility == CredentialFieldVisibilities.DeselectedCredential)
+                    {
+                        state = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_DESELECTED_TILE;
+                    }
+                    else if (controlDescriptor.Options.Visibility == CredentialFieldVisibilities.Hidden)
+                    {
+                        state = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_SELECTED_TILE;
+                    }
+                    else
+                    {
+                        state = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_BOTH;
+                    }
+
+                    yield return new NewCredentialField(currentFieldId, new _CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR()
+                    {
+                        dwFieldID = (uint)currentFieldId,
+                        cpft = type,
+                        pszLabel = label,
+                        guidFieldType = default(Guid)
+                    }, state);
 
                     currentFieldId += 1;
                 }
-
-                return credentialFields;
             }
         }
         
@@ -312,21 +313,71 @@ namespace JamieHighfield.CredentialProvider.Providers
                 return HRESULT.E_NOTIMPL;
             }
 
-            CredentialCollection credentials = new CredentialCollection(this);
+            //Invoke the CredentialsDelegate delegate earlier created in an implementation.
 
-            CredentialsDelegate?.Invoke(credentials);
+            CredentialCollection<TCredentialType> credentials = new CredentialCollection<TCredentialType>(this);
+
+            CredentialsFactory?.Invoke(credentials);
 
             Credentials = credentials;
 
-            CredentialControlCollection controls = new CredentialControlCollection(this);
+            //Invoke the DescriptorsDelegate delegate earlier created in an implementation.
 
-            ControlsDelegate?.Invoke(this, controls);
+            DescriptorCollection descriptors = new DescriptorCollection();
 
-            Controls = new ReadOnlyCredentialControlCollection(controls);
+            DescriptorsFactory?.Invoke(this, descriptors);
+
+            Descriptors = descriptors;
 
             foreach (CredentialBase credential in Credentials)
             {
-                credential.Controls = new ReadOnlyCredentialControlCollection(Controls.ToList(), credential);
+                //We need to turn the descriptors into a control that can actually be used - one for each credential.
+
+                List<NewCredentialControlBase> credentialControls = new List<NewCredentialControlBase>();
+
+                foreach (DescriptorBase controlDescriptor in descriptors)
+                {
+                    //Determine the type of descriptor and create a corresponding control.
+
+                    if (controlDescriptor is LabelDescriptor)
+                    {
+                        //Label descriptor
+
+                        credentialControls.Add(new NewLabelControl(credential, controlDescriptor.Options.Visibility, ((LabelDescriptorOptions)controlDescriptor.Options).Text, ((LabelDescriptorOptions)controlDescriptor.Options).Size, ((LabelDescriptorOptions)controlDescriptor.Options).TextChanged));
+                    }
+                    else if (controlDescriptor is TextBoxDescriptor)
+                    {
+                        //TextBox descriptor
+
+                        credentialControls.Add(new NewTextBoxControl(credential, controlDescriptor.Options.Visibility, ((TextBoxDescriptorOptions)controlDescriptor.Options).Label, ((TextBoxDescriptorOptions)controlDescriptor.Options).Text, ((TextBoxDescriptorOptions)controlDescriptor.Options).Focussed, ((TextBoxDescriptorOptions)controlDescriptor.Options).TextChanged));
+                    }
+                    else if (controlDescriptor is LinkDescriptor)
+                    {
+                        //Link descriptor
+
+                        credentialControls.Add(new NewLinkControl(credential, controlDescriptor.Options.Visibility, ((LinkDescriptorOptions)controlDescriptor.Options).Text, ((LinkDescriptorOptions)controlDescriptor.Options).TextChanged, ((LinkDescriptorOptions)controlDescriptor.Options).Click));
+                    }
+                    else if (controlDescriptor is ImageDescriptor)
+                    {
+                        //Image descriptor
+
+                        credentialControls.Add(new NewImageControl(credential, controlDescriptor.Options.Visibility, ((ImageDescriptorOptions)controlDescriptor.Options).Image));
+                    }
+                    else if (controlDescriptor is CheckBoxDescriptor)
+                    {
+                        //CheckBox descriptor
+
+                        credentialControls.Add(new NewCheckBoxControl(credential, controlDescriptor.Options.Visibility, ((CheckBoxDescriptorOptions)controlDescriptor.Options).Label, ((CheckBoxDescriptorOptions)controlDescriptor.Options).Checked, ((CheckBoxDescriptorOptions)controlDescriptor.Options).CheckChange));
+                    }
+                    else if (controlDescriptor is ButtonDescriptor)
+                    {
+                        //Button descriptor
+
+                        credentialControls.Add(new NewButtonControl(credential, controlDescriptor.Options.Visibility, ((ButtonDescriptorOptions)controlDescriptor.Options).AdjacentControl));
+                    }
+                }
+
+                credential.Controls = new ReadOnlyCollection<NewCredentialControlBase>(credentialControls);
 
                 CredentialFieldCollection fields = new CredentialFieldCollection();
 
@@ -348,7 +399,7 @@ namespace JamieHighfield.CredentialProvider.Providers
                     currentFieldId = (int)count;
                 }
 
-                foreach (CredentialControlBase control in credential.Controls)
+                foreach (NewCredentialControlBase control in credential.Controls)
                 {
                     CredentialField field = new CredentialField(control, currentFieldId);
 
@@ -472,7 +523,7 @@ namespace JamieHighfield.CredentialProvider.Providers
                 }
             }
 
-            pdwCount += (uint)Fields.Count;
+            pdwCount += (uint)Fields.Count();
 
             return HRESULT.S_OK;
         }
@@ -519,14 +570,14 @@ namespace JamieHighfield.CredentialProvider.Providers
                 }
             }
 
-            if (effectiveIndex >= Fields.Count)
+            if (effectiveIndex >= Fields.Count())
             {
                 return HRESULT.E_INVALIDARG;
             }
 
-            CredentialField credentialField = Fields[effectiveIndex];
+            NewCredentialField credentialField = Fields.ToList()[effectiveIndex];
 
-            _CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR credentialFieldDescriptor = credentialField.GetDescriptor();
+            _CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR credentialFieldDescriptor = credentialField.FieldDescriptor;
 
             IntPtr pcpfd = Marshal.AllocHGlobal(Marshal.SizeOf(credentialFieldDescriptor));
 
@@ -573,13 +624,21 @@ namespace JamieHighfield.CredentialProvider.Providers
             GlobalLogger.LogMethodCall();
 
             int effectiveIndex = (int)dwIndex;
-            Console.WriteLine("Here23");
 
             //Check if there is a parent credential provider, and if so, run the same method on that credential provider.
 
             if (UnderlyingCredentialProvider != null)
             {
                 int result = UnderlyingCredentialProvider.GetCredentialCount(out uint count, out _, out _);
+
+                if (result != HRESULT.S_OK)
+                {
+                    ppcpc = null;
+
+                    return result;
+                }
+
+                result = UnderlyingCredentialProvider.GetFieldDescriptorCount(out uint pdwCount);
 
                 if (result != HRESULT.S_OK)
                 {
@@ -599,18 +658,62 @@ namespace JamieHighfield.CredentialProvider.Providers
                         return result;
                     }
 
-                    CredentialBase wrappedCredential = (IncomingCredentialManipulator?.Invoke(this) ?? throw new CredentialNullException());
+                    CredentialBase wrappedCredential = (IncomingCredentialFactory?.Invoke(this) ?? throw new CredentialNullException());
 
                     wrappedCredential.CredentialProvider = this;
                     wrappedCredential.UnderlyingCredential = credential;
 
-                    wrappedCredential.Controls = new ReadOnlyCredentialControlCollection(Controls.ToList(), wrappedCredential);
+                    List<NewCredentialControlBase> credentialControls = new List<NewCredentialControlBase>();
+
+                    foreach (DescriptorBase controlDescriptor in Descriptors)
+                    {
+                        //Determine the type of descriptor and create a corresponding control.
+
+                        if (controlDescriptor is LabelDescriptor)
+                        {
+                            //Label descriptor
+
+                            credentialControls.Add(new NewLabelControl(wrappedCredential, controlDescriptor.Options.Visibility, ((LabelDescriptorOptions)controlDescriptor.Options).Text, ((LabelDescriptorOptions)controlDescriptor.Options).Size, ((LabelDescriptorOptions)controlDescriptor.Options).TextChanged));
+                        }
+                        else if (controlDescriptor is TextBoxDescriptor)
+                        {
+                            //TextBox descriptor
+
+                            credentialControls.Add(new NewTextBoxControl(wrappedCredential, controlDescriptor.Options.Visibility, ((TextBoxDescriptorOptions)controlDescriptor.Options).Label, ((TextBoxDescriptorOptions)controlDescriptor.Options).Text, ((TextBoxDescriptorOptions)controlDescriptor.Options).Focussed, ((TextBoxDescriptorOptions)controlDescriptor.Options).TextChanged));
+                        }
+                        else if (controlDescriptor is LinkDescriptor)
+                        {
+                            //Link descriptor
+
+                            credentialControls.Add(new NewLinkControl(wrappedCredential, controlDescriptor.Options.Visibility, ((LinkDescriptorOptions)controlDescriptor.Options).Text, ((LinkDescriptorOptions)controlDescriptor.Options).TextChanged, ((LinkDescriptorOptions)controlDescriptor.Options).Click));
+                        }
+                        else if (controlDescriptor is ImageDescriptor)
+                        {
+                            //Image descriptor
+
+                            credentialControls.Add(new NewImageControl(wrappedCredential, controlDescriptor.Options.Visibility, ((ImageDescriptorOptions)controlDescriptor.Options).Image));
+                        }
+                        else if (controlDescriptor is CheckBoxDescriptor)
+                        {
+                            //CheckBox descriptor
+
+                            credentialControls.Add(new NewCheckBoxControl(wrappedCredential, controlDescriptor.Options.Visibility, ((CheckBoxDescriptorOptions)controlDescriptor.Options).Label, ((CheckBoxDescriptorOptions)controlDescriptor.Options).Checked, ((CheckBoxDescriptorOptions)controlDescriptor.Options).CheckChange));
+                        }
+                        else if (controlDescriptor is ButtonDescriptor)
+                        {
+                            //Button descriptor
+
+                            credentialControls.Add(new NewButtonControl(wrappedCredential, controlDescriptor.Options.Visibility, ((ButtonDescriptorOptions)controlDescriptor.Options).AdjacentControl));
+                        }
+                    }
+
+                    wrappedCredential.Controls = new ReadOnlyCollection<NewCredentialControlBase>(credentialControls);
 
                     CredentialFieldCollection fields = new CredentialFieldCollection();
 
-                    int currentFieldId = (int)count;
+                    int currentFieldId = (int)pdwCount;
 
-                    foreach (CredentialControlBase control in wrappedCredential.Controls)
+                    foreach (NewCredentialControlBase control in wrappedCredential.Controls)
                     {
                         CredentialField field = new CredentialField(control, currentFieldId);
 
@@ -635,23 +738,17 @@ namespace JamieHighfield.CredentialProvider.Providers
                 }
             }
 
-            if (effectiveIndex >= Fields.Count)
+            if (effectiveIndex >= Fields.Count())
             {
-                Console.WriteLine("Invalid");
                 ppcpc = null;
 
                 return HRESULT.E_INVALIDARG;
             }
 
-            Console.WriteLine("Here3");
             Credentials[effectiveIndex].Initialise();
-
-            Console.WriteLine("Here");
-
+            
             ppcpc = Credentials[effectiveIndex];
-
-            Console.WriteLine("Okay");
-
+            
             return HRESULT.S_OK;
         }
 

@@ -10,6 +10,7 @@
  */
 
 using JamieHighfield.CredentialProvider.Controls.Events;
+using JamieHighfield.CredentialProvider.Controls.New;
 using JamieHighfield.CredentialProvider.Credentials;
 using System;
 using System.Collections.Generic;
@@ -40,21 +41,21 @@ namespace JamieHighfield.CredentialProvider.Controls
         /// <typeparam name="TControlType">The type of control that inherits <see cref="CredentialControlBase"/>.</typeparam>
         /// <param name="controls"></param>
         /// <returns></returns>
-        public static TControlType FirstOfControlType<TControlType>(this IList<CredentialControlBase> controls)
-            where TControlType : CredentialControlBase
+        public static TControlType FirstOfControlType<TControlType>(this IList<NewCredentialControlBase> controls)
+            where TControlType : NewCredentialControlBase
         {
             return (TControlType)controls.FirstOrDefault(control => control is TControlType);
         }
 
-        public static TControlType FirstOfControlType<TControlType>(this IList<CredentialControlBase> controls, int skip)
-            where TControlType : CredentialControlBase
+        public static TControlType FirstOfControlType<TControlType>(this IList<NewCredentialControlBase> controls, int skip)
+            where TControlType : NewCredentialControlBase
         {
             if (skip <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(skip));
             }
 
-            return (TControlType)controls.Skip(skip).FirstOrDefault(control => control is TControlType);
+            return (TControlType)controls.Where(control => control is TControlType).Skip(1).FirstOrDefault();
         }
 
         internal static CredentialControlCollection Add<TControlType>(this CredentialControlCollection controls, Action<TControlType> properties)

@@ -1,5 +1,4 @@
 ﻿using JamieHighfield.CredentialProvider.Credentials;
-using JamieHighfield.CredentialProvider.Interfaces;
 using JamieHighfield.CredentialProvider.Interop;
 using JamieHighfield.CredentialProvider.Logging;
 using System;
@@ -13,15 +12,9 @@ namespace JamieHighfield.CredentialProvider.Providers
     /// 
     /// This wraps the functionality of the 'ICredentialProvider' and 'ICredentialProviderSetUserArray' interfaces.
     /// </summary>
-    public abstract class CredentialProviderSetUserArrayBase : CredentialProviderBase, ICredentialProviderSetUserArray
+    public abstract class CredentialProviderSetUserArrayBase<TCredentialType> : CredentialProviderBase<TCredentialType>, ICredentialProviderSetUserArray
+        where TCredentialType : CredentialBase
     {
-        /// <summary>
-        /// Instantiate a new <see cref="CredentialProviderSetUserArrayBase"/> object.
-        /// </summary>
-        protected CredentialProviderSetUserArrayBase()
-            : base()
-        { }
-
         /// <summary>
         /// Instantiate a new <see cref="CredentialProviderSetUserArrayBase"/> object.
         /// </summary>
@@ -31,52 +24,12 @@ namespace JamieHighfield.CredentialProvider.Providers
         { }
 
         /// <summary>
-        /// Instantiate a new <see cref="CredentialProviderSetUserArrayBase"/> object.
-        /// </summary>
-        /// <param name="credentialsDelegate">The <see cref="Action{CredentialCollection}"/> that will be invoked upon construction.</param>
-        /// <param name="controlsDelegate">The <see cref="Action{CredentialControlCollection}"/> that will be invoked upon construction.</param>
-        protected CredentialProviderSetUserArrayBase(Action<CredentialCollection> credentialsDelegate, Action<ICurrentEnvironment, CredentialControlCollection> controlsDelegate)
-            : base(credentialsDelegate, controlsDelegate)
-        { }
-
-        /// <summary>
-        /// Instantiate a new <see cref="CredentialProviderSetUserArrayBase"/> object.
-        /// </summary>
-        /// <param name="usageScenarios">The <see cref="CredentialProviderUsageScenarios"/> that this credential provider will support when requested by Windows.</param>
-        /// <param name="credentialsDelegate">The <see cref="Action{CredentialCollection}"/> that will be invoked upon construction.</param>
-        /// <param name="controlsDelegate">The <see cref="Action{CredentialControlCollection}"/> that will be invoked upon construction.</param>
-        protected CredentialProviderSetUserArrayBase(CredentialProviderUsageScenarios usageScenarios, Action<CredentialCollection> credentialsDelegate, Action<ICurrentEnvironment, CredentialControlCollection> controlsDelegate)
-            : base(usageScenarios, credentialsDelegate, controlsDelegate)
-        { }
-
-        /// <summary>
-        /// Instantiate a new <see cref="CredentialProviderSetUserArrayBase"/> object that will wrap an existing credential provider.
-        /// </summary>
-        /// <param name="underlyingCredentialProviderGuid">The COM <see cref="Guid"/> of the credential provider that this credential provider should wrap.</param>
-        /// <param name="incomingCredentialManipulator">Manipulate an incoming credential provider from the wrapped credential provider.</param>
-        protected CredentialProviderSetUserArrayBase(Guid underlyingCredentialProviderGuid, Func<ICurrentEnvironment, CredentialBase> incomingCredentialManipulator)
-            : base(underlyingCredentialProviderGuid, incomingCredentialManipulator)
-        { }
-
-        /// <summary>
-        /// Instantiate a new <see cref="CredentialProviderSetUserArrayBase"/> object that will wrap an existing credential provider.
-        /// </summary>
-        /// <param name="underlyingCredentialProviderGuid">The COM <see cref="Guid"/> of the credential provider that this credential provider should wrap.</param>
-        /// <param name="controlsDelegate">The <see cref="Action{CredentialControlCollection}"/> that will be invoked when fields are requested by Windows.</param>
-        /// <param name="incomingCredentialManipulator">Manipulate an incoming credential provider from the wrapped credential provider.</param>
-        protected CredentialProviderSetUserArrayBase(Guid underlyingCredentialProviderGuid, Action<ICurrentEnvironment, CredentialControlCollection> controlsDelegate, Func<ICurrentEnvironment, CredentialBase> incomingCredentialManipulator)
-            : base(underlyingCredentialProviderGuid, controlsDelegate, incomingCredentialManipulator)
-        { }
-
-        /// <summary>
         /// Instantiate a new <see cref="CredentialProviderSetUserArrayBase"/> object that will wrap an existing credential provider.
         /// </summary>
         /// <param name="underlyingCredentialProviderGuid">The COM <see cref="Guid"/> of the credential provider that this credential provider should wrap.</param>
         /// <param name="usageScenarios">The <see cref="CredentialProviderUsageScenarios"/> that this credential provider will support when requested by Windows.</param>
-        /// <param name="controlsDelegate">The <see cref="Action{CredentialControlCollection}"/> that will be invoked upon construction.</param>
-        /// <param name="incomingCredentialManipulator">Manipulate an incoming credential provider from the wrapped credential provider.</param>
-        protected CredentialProviderSetUserArrayBase(Guid underlyingCredentialProviderGuid, CredentialProviderUsageScenarios usageScenarios, Action<ICurrentEnvironment, CredentialControlCollection> controlsDelegate, Func<ICurrentEnvironment, CredentialBase> incomingCredentialManipulator)
-            : base(underlyingCredentialProviderGuid, usageScenarios, controlsDelegate, incomingCredentialManipulator)
+        protected CredentialProviderSetUserArrayBase(Guid underlyingCredentialProviderGuid, CredentialProviderUsageScenarios usageScenarios)
+            : base(underlyingCredentialProviderGuid, usageScenarios)
         { }
 
         #region Variables
@@ -94,7 +47,7 @@ namespace JamieHighfield.CredentialProvider.Providers
         #region Methods
 
         #region Credential Provider Interface Methods
-        
+
         #region ICredentialProviderSetUserArray
 
         /// <summary>

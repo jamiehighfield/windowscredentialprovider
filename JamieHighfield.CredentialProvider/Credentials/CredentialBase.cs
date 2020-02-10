@@ -10,14 +10,17 @@
  */
 
 using JamieHighfield.CredentialProvider.Controls;
-using JamieHighfield.CredentialProvider.Controls.Events;
+using JamieHighfield.CredentialProvider.Controls.New;
 using JamieHighfield.CredentialProvider.Interfaces;
 using JamieHighfield.CredentialProvider.Interop;
 using JamieHighfield.CredentialProvider.Logging;
 using JamieHighfield.CredentialProvider.Logon;
 using JamieHighfield.CredentialProvider.Providers;
+using JamieHighfield.CredentialProvider.Providers.Interfaces;
 using JamieHighfield.CredentialProvider.WindowsAuthentication;
 using System;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
@@ -67,14 +70,14 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// <summary>
         /// Gets the handle of the main window for the parent process.
         /// </summary>
-        public WindowHandle MainWindowHandle { get; private set; }
+        public WindowHandle MainWindowHandle => new WindowHandle(Process.GetCurrentProcess().MainWindowHandle);
 
         #endregion
 
         /// <summary>
         /// Gets or sets the <see cref="CredentialProviderBase"/> that enumerates this credential.
         /// </summary>
-        internal CredentialProviderBase CredentialProvider { get; set; }
+        internal ManagedCredentialProvider CredentialProvider { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="ICredentialProviderCredential"/> that underlies this <see cref="CredentialBase"/> (only pertinent to when this credential is wrapping another credential).
@@ -84,7 +87,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// <summary>
         /// Gets a read-only collection of <see cref="CredentialControlBase"/>. The <see cref="CredentialControlBase"/> enumerated here are specific to this credential, and any changes here won't be reflected in any other credentials.
         /// </summary>
-        public ReadOnlyCredentialControlCollection Controls { get; internal set; }
+        public ReadOnlyCollection<NewCredentialControlBase> Controls { get; internal set; }
 
         /// <summary>
         /// Gets the <see cref="LogonSequencePipelineBase"/> used during the logon sequence to authenticate, authorise and manipulate incoming credentials.
@@ -124,6 +127,11 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// This method is called before the <see cref="ProcessLogon"/> method is called when a logon is initiated. If <see cref="WindowsLogon"/> is set to true, <see cref="ProcessLogon"/> will not be called; instead, this is the only method that will be called.
         /// </summary>
         public virtual void BeforeLogon() { }
+
+        internal virtual ResultMessageInformation ResultMessage()
+        {
+            return null;
+        }
 
         /// <summary>
         /// This method is called to get a <see cref="LogonResponse"/> containing a logon package that can be used to logon to Windows. By default, this method runs the <see cref="Logon.LogonSequencePipeline"/> within this credential and returns the <see cref="LogonResponse"/> from that. This method will be ignored if an underlying credential has been specified or <see cref="WindowsLogon"/> is set to true. This method can be overridden to provide different behaviour.
@@ -190,7 +198,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 Marshal.StructureToPtr(remotableHandle, handle, false);
 
-                MainWindowHandle = new WindowHandle(handle);
+                //MainWindowHandle = new WindowHandle(handle);
             }
 
             if (UnderlyingCredential != null)
@@ -309,17 +317,16 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 pcpfs = identifiedField.GetState();
 
-                if (identifiedField.Control is TextBoxControl)
+                if (identifiedField.Control is NewTextBoxControl)
                 {
-                    //TODO
-                    //if (((TextBoxControl)field.Control).Focussed == true)
-                    //{
-                    //    pcpfis = _CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE.CPFIS_FOCUSED;
-                    //}
-                    //else
-                    //{
-                    pcpfis = _CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE.CPFIS_NONE;
-                    //}
+                    if (((NewTextBoxControl)identifiedField.Control).Focussed == true)
+                    {
+                        pcpfis = _CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE.CPFIS_FOCUSED;
+                    }
+                    else
+                    {
+                        pcpfis = _CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE.CPFIS_NONE;
+                    }
                 }
                 else
                 {
@@ -362,15 +369,15 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
 
-                if (identifiedField.Control is LabelControl labelControl)
+                if (identifiedField.Control is NewLabelControl labelControl)
                 {
                     ppsz = labelControl.Text;
                 }
-                else if (identifiedField.Control is TextBoxControl textBoxControl)
+                else if (identifiedField.Control is NewTextBoxControl textBoxControl)
                 {
                     ppsz = textBoxControl.Text;
                 }
-                else if (identifiedField.Control is LinkControl linkControl)
+                else if (identifiedField.Control is NewLinkControl linkControl)
                 {
                     ppsz = linkControl.Text;
                 }
@@ -417,7 +424,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
 
-                if (identifiedField.Control is ImageControl imageControl)
+                if (identifiedField.Control is NewImageControl imageControl)
                 {
                     phbmp = imageControl.Image.GetHbitmap();
                 }
@@ -466,7 +473,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
 
-                if (identifiedField.Control is CheckBoxControl checkBoxControl)
+                if (identifiedField.Control is NewCheckBoxControl checkBoxControl)
                 {
                     pbChecked = checkBoxControl.Checked ? 1 : 0;
                     ppszLabel = checkBoxControl.Label;
@@ -515,7 +522,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
 
-                if (identifiedField.Control is ButtonControl buttonControl)
+                if (identifiedField.Control is NewButtonControl buttonControl)
                 {
                     CredentialField adjacentField = Fields
                         .FirstOrDefault(field => field.Control == buttonControl.AdjacentControl);
@@ -531,7 +538,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
                 }
                 else
                 {
-                    pdwAdjacentTo = 0;
+                    pdwAdjacentTo = 2;
 
                     return HRESULT.E_INVALIDARG;
                 }
@@ -628,11 +635,11 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
 
-                if (identifiedField.Control is LabelControl labelControl)
+                if (identifiedField.Control is NewLabelControl labelControl)
                 {
-                    labelControl.UpdateText(psz);
+                    //labelControl.UpdateText(psz);
                 }
-                else if (identifiedField.Control is TextBoxControl textBoxControl)
+                else if (identifiedField.Control is NewTextBoxControl textBoxControl)
                 {
                     textBoxControl.UpdateText(psz);
                 }
@@ -673,7 +680,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
 
-                if (identifiedField.Control is CheckBoxControl checkBoxControl)
+                if (identifiedField.Control is NewCheckBoxControl checkBoxControl)
                 {
                     checkBoxControl.Checked = bChecked == 1;
                 }
@@ -739,9 +746,9 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
                 CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
 
-                if (identifiedField.Control is LinkControl linkCcontrol)
+                if (identifiedField.Control is NewLinkControl linkCcontrol)
                 {
-                    linkCcontrol.InvokeClicked(this, new LinkControlClickedEventArgs(this, linkCcontrol));
+                    linkCcontrol.Click?.Invoke(this, new EventArgs());
                 }
                 else
                 {
@@ -761,6 +768,34 @@ namespace JamieHighfield.CredentialProvider.Credentials
         int ICredentialProviderCredential.GetSerialization(out _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE pcpgsr, out _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION pcpcs, out string ppszOptionalStatusText, out _CREDENTIAL_PROVIDER_STATUS_ICON pcpsiOptionalStatusIcon)
         {
             GlobalLogger.LogMethodCall();
+
+            ResultMessageInformation resultMessageInformation = ResultMessage();
+
+            if (resultMessageInformation != null)
+            {
+                pcpgsr = _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE.CPGSR_NO_CREDENTIAL_NOT_FINISHED;
+                pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION { ulAuthenticationPackage = 1234 };
+                ppszOptionalStatusText = (resultMessageInformation.Message ?? string.Empty);
+
+                if (resultMessageInformation.Icon == ResultMessageInformationIcons.None)
+                {
+                    pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_NONE;
+                }
+                else if (resultMessageInformation.Icon == ResultMessageInformationIcons.Information)
+                {
+                    pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_SUCCESS;
+                }
+                else if (resultMessageInformation.Icon == ResultMessageInformationIcons.Warning)
+                {
+                    pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_WARNING;
+                }
+                else
+                {
+                    pcpsiOptionalStatusIcon = _CREDENTIAL_PROVIDER_STATUS_ICON.CPSI_ERROR;
+                }
+
+                return HRESULT.S_OK;
+            }
 
             BeforeLogon();
 

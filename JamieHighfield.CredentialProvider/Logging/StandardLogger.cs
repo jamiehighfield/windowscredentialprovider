@@ -39,7 +39,7 @@ namespace JamieHighfield.CredentialProvider.Logging
         public void Log(LogLevels level, string message)
         {
             Console.WriteLine("Information: " + message);
-            File.AppendAllText("C:\\New folder\\tst.txt", message + Environment.NewLine);
+            //File.AppendAllText("C:\\New folder\\tst.txt", message + Environment.NewLine);
         }
 
         /// <summary>
@@ -51,7 +51,7 @@ namespace JamieHighfield.CredentialProvider.Logging
         public void Log(LogLevels level, string message, Exception exception)
         {
             Console.WriteLine("Warning: " + message);
-            File.AppendAllText("C:\\New folder\\tst.txt", message + Environment.NewLine);
+            //File.AppendAllText("C:\\New folder\\tst.txt", message + Environment.NewLine);
         }
 
         #endregion

@@ -20,9 +20,9 @@ namespace JamieHighfield.CredentialProvider
 {
     public sealed class CredentialControlCollection : List<CredentialControlBase>
     {
-        public CredentialControlCollection(CredentialProviderBase credentialProvider)
+        public CredentialControlCollection(object credentialProvider)
         {
-            CredentialProvider = credentialProvider;
+            //CredentialProvider = credentialProvider;
         }
 
         #region Variables
@@ -33,7 +33,7 @@ namespace JamieHighfield.CredentialProvider
 
         #region Properties
 
-        internal CredentialProviderBase CredentialProvider { get; }
+        //internal CredentialProviderBase CredentialProvider { get; }
 
         #endregion
 
@@ -45,8 +45,6 @@ namespace JamieHighfield.CredentialProvider
             {
                 throw new ArgumentNullException(nameof(control));
             }
-
-            control.CredentialProvider = CredentialProvider;
 
             base.Add(control);
 

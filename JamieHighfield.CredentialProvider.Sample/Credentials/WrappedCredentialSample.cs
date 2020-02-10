@@ -4,6 +4,8 @@ namespace JamieHighfield.CredentialProvider.Sample.Credentials
 {
     public sealed class WrappedCredentialSample : ExtendedCredentialBase
     {
+        public WrappedCredentialSample() { }
+
         #region Variables
 
 

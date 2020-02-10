@@ -1,5 +1,6 @@
 ﻿using JamieHighfield.CredentialProvider.Interop;
 using JamieHighfield.CredentialProvider.Logon;
+using System.Windows.Forms;
 using static JamieHighfield.CredentialProvider.Constants;
 
 namespace JamieHighfield.CredentialProvider.Credentials
@@ -26,7 +27,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
         #region Properties
 
-        private IQueryContinueWithStatus Status { get; set; }
+        private IQueryContinueWithStatus Status { get; }
 
         /// <summary>
         /// Gets whether the operation was cancelled by the user clicking the 'Cancel' button.
@@ -47,7 +48,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// <summary>
         /// Gets the <see cref="ErrorMessageIcons"/> to be displayed alongside the <see cref="ErrorMessage"/>. This property will be ignored in all usage scenarios in Windows 8/Windows Server 2012 and above.
         /// </summary>
-        public ErrorMessageIcons ErrorMessageIcon { get; private set; }
+        public ResultMessageInformationIcons Icon { get; private set; }
 
         /// <summary>
         /// Gets the error message to be displayed by Windows.
@@ -78,12 +79,12 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// <summary>
         /// Cancel the current operation. The current method will continue to run until it has finished, but the login will be cancelled when the current method has finished.
         /// </summary>
-        public void Cancel(ErrorMessageIcons errorMessageIcon, string errorMessage)
+        public void Cancel(string errorMessage, ResultMessageInformationIcons errorMessageIcon)
         {
             Cancelled = true;
 
-            ErrorMessageIcon = errorMessageIcon;
             ErrorMessage = errorMessage;
+            Icon = errorMessageIcon;
         }
 
         #endregion

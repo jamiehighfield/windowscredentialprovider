@@ -1,4 +1,5 @@
 ﻿using System;
+using JamieHighfield.CredentialProvider.Interfaces;
 using JamieHighfield.CredentialProvider.Interop;
 using JamieHighfield.CredentialProvider.Logging;
 using JamieHighfield.CredentialProvider.Logon;
@@ -36,6 +37,11 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Gets or sets the <see cref="Logon.LogonResponse"/> which is returned from the output of running the <see cref="LogonSequencePipeline"/>. This property can be used as a link between the <see cref="ProcessConnection(Connection)"/> and <see cref="ProcessLogon"/> methods.
         /// </summary>
         public LogonResponse LogonResponse { get; set; }
+
+        /// <summary>
+        /// Gets or sets the delegate that will be run on connection.
+        /// </summary>
+        public Action<ICurrentEnvironment, Connection> ConnectionFactory { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="Credentials.Connection"/> which is used during the credential's connection phase.
@@ -93,7 +99,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
                 {
                     GlobalLogger.Log(LogLevels.Warning, "The default behaviour of this credential provider is to process a logon sequence pipeline. The provided logon sequence pipeline was either null or in the incorrect format.");
 
-                    connection.Cancel(ErrorMessageIcons.Error, "This credential provider is not currently accepting credentials. Please contact your system administrator.");
+                    connection.Cancel("This credential provider is not currently accepting credentials. Please contact your system administrator.", ResultMessageInformationIcons.Error);
                 }
                 else
                 {
@@ -102,6 +108,19 @@ namespace JamieHighfield.CredentialProvider.Credentials
             }
 
             return;
+        }
+
+        internal override ResultMessageInformation ResultMessage()
+        {
+            if (Connection != null)
+            {
+                if (Connection.Cancelled == true)
+                {
+                    return new ResultMessageInformation(Connection.ErrorMessage, Connection.Icon);
+                }
+            }
+
+            return null;
         }
 
         #region Credential Provider Interface Methods
@@ -269,11 +288,11 @@ namespace JamieHighfield.CredentialProvider.Credentials
         {
             GlobalLogger.LogMethodCall();
 
-            Connection connection = new Connection(pqcws);
+            Connection = new Connection(pqcws);
 
-            ProcessConnection(connection);
+            ConnectionFactory?.Invoke(this, Connection);
 
-            if (connection.Cancelled == false)
+            if (Connection.Cancelled == false)
             {
                 if (UnderlyingCredential != null)
                 {

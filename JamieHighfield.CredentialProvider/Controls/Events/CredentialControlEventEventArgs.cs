@@ -9,15 +9,16 @@
  * 
  */
 
+using JamieHighfield.CredentialProvider.Controls.New;
 using JamieHighfield.CredentialProvider.Credentials;
 using System;
 
 namespace JamieHighfield.CredentialProvider.Controls.Events
 {
     public abstract class CredentialControlEventEventArgs<TCredentialControlType>
-        where TCredentialControlType : CredentialControlBase
+        where TCredentialControlType : NewCredentialControlBase
     {
-        public CredentialControlEventEventArgs(CredentialBase credential, TCredentialControlType control)
+        internal CredentialControlEventEventArgs(CredentialBase credential, TCredentialControlType control)
         {
             Credential = credential ?? throw new ArgumentNullException(nameof(credential));
             Control = control ?? throw new ArgumentNullException(nameof(control));

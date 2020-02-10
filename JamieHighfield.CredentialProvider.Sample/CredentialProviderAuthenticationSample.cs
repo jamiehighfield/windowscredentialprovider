@@ -11,6 +11,7 @@
 
 using JamieHighfield.CredentialProvider.Logon;
 using JamieHighfield.CredentialProvider.Logon.Authentication;
+using JamieHighfield.CredentialProvider.Sample.Forms;
 using System;
 using System.DirectoryServices.AccountManagement;
 using System.Net;
@@ -41,6 +42,9 @@ namespace JamieHighfield.CredentialProvider.Sample
                 //SecureString password = ((CredentialSample)logonPackage.Credential).Password;
                 string domain = Environment.MachineName;// ((CredentialSample)logonPackage.Credential).Domain;
 
+                frmAcceptableUsePolicySample f = new frmAcceptableUsePolicySample();
+                f.ShowDialog();
+
                 using (PrincipalContext principalContext = new PrincipalContext(ContextType.Machine))
                 {
                     if (principalContext.ValidateCredentials("admin", (new NetworkCredential(string.Empty, "password")).Password) == true)
@@ -49,8 +53,9 @@ namespace JamieHighfield.CredentialProvider.Sample
                     }
                 }
             }
-            catch
+            catch(Exception ex)
             {
+                Console.WriteLine(ex.Message);
                 return new LogonResponse(ErrorMessageIcons.Error, "An unknown error occurred. Please contact your system administrator.");
             }
 

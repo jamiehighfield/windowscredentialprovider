@@ -12,12 +12,13 @@
 using JamieHighfield.CredentialProvider.Interop;
 using JamieHighfield.CredentialProvider.Controls;
 using System;
+using JamieHighfield.CredentialProvider.Controls.New;
 
 namespace JamieHighfield.CredentialProvider.Credentials
 {
     public sealed class CredentialField
     {
-        internal CredentialField(CredentialControlBase control, int fieldId)
+        internal CredentialField(NewCredentialControlBase control, int fieldId)
         {
             Control = control ?? throw new ArgumentNullException(nameof(control));
             FieldId = fieldId;
@@ -31,7 +32,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
         #region Properties
 
-        internal CredentialControlBase Control { get; private set; }
+        internal NewCredentialControlBase Control { get; private set; }
 
         internal int FieldId { get; private set; }
 

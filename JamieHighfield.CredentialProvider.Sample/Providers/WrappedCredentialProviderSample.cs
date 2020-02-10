@@ -1,4 +1,5 @@
 ﻿using JamieHighfield.CredentialProvider.Controls;
+using JamieHighfield.CredentialProvider.Controls.Descriptors;
 using JamieHighfield.CredentialProvider.Logging;
 using JamieHighfield.CredentialProvider.Providers;
 using JamieHighfield.CredentialProvider.Sample.Credentials;
@@ -11,34 +12,41 @@ namespace JamieHighfield.CredentialProvider.Sample.Providers
     [Guid("5A09A8E2-2138-4F7C-BF74-3AD9DD710123")]
     [ClassInterface(ClassInterfaceType.None)]
     [ProgId("WrappedCredentialProviderSample")]
-    public sealed class WrappedCredentialProviderSample : CredentialProviderSetUserArrayBase
+    public sealed class WrappedCredentialProviderSample : CredentialProviderSetUserArrayBase<WrappedCredentialSample>
     {
         public WrappedCredentialProviderSample()
-            : base(SystemCredentialProviders.Password, (environment, controls) =>
-            {
-                //Add a new link control to the controls that this credential provider will expose (on top of the wrapped fields). This
-                //will appear at the end of the wrapped fields.
-
-                controls
-                    .AddLink((credential) => CredentialFieldVisibilities.SelectedCredential,
-                    (credential) => "Reset Password",
-                    (_sender, _eventArgs) =>
-                    {
-                        //Use the main window handle parsed in from the current environment.
-
-                        MessageBox.Show(environment.MainWindowHandle, "Reset Password");
-                    });
-            }, (environment) =>
-            {
-                //For wrapped credential providers, for each credential that is enumerated by the wrapped credential provider, it must be
-                //wrapped in a credential. If the incoming credential has extended the functionality by using one of the extension interfaces,
-                //such as 'IConnectableCredential', then the credential returned here must extend the correct base classes in order to maintain,
-                //the wrapped functionality. This delegate is used to provide this.
-
-                return new WrappedCredentialSample();
-            })
+            : base(SystemCredentialProviders.Password, CredentialProviderUsageScenarios.All)
         {
             GlobalLogger.Enabled = true;
+
+            IncomingCredentialFactory = (environment) =>
+            {
+                //For wrapped credential providers, each credential that is enumerated by the wrapped credential provider  must be
+                //wrapped in a managed credential. If the incoming credential has extended the functionality by using one of the extension
+                //interfaces, such as 'IConnectableCredential', then the credential returned here must extend the correct base classes in
+                //order to maintain the wrapped functionality. This delegate is used to provide this.
+
+                return new WrappedCredentialSample();
+            };
+
+            DescriptorsFactory = (environment, descriptors) =>
+            {
+                //Add all the control descriptors. While the controls available are applied at the credential provider level, the
+                //actual contents of the controls can differ between credentials and can be modified in the 'CredentialBase.Initiated' method.
+
+                descriptors
+                    .AddLink((options) =>
+                    {
+                        options.Visibility = CredentialFieldVisibilities.SelectedCredential;
+
+                        options.Text = (credential) => "Reset Password";
+
+                        options.Click = (credential) => (sender, eventArgs) =>
+                        {
+                            MessageBox.Show(environment.MainWindowHandle, "Reset Password");
+                        };
+                    });
+            };
         }
 
         #region Variables

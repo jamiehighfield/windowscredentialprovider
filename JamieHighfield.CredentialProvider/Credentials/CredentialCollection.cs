@@ -15,9 +15,10 @@ using System.Collections.Generic;
 
 namespace JamieHighfield.CredentialProvider.Credentials
 {
-    public sealed class CredentialCollection : List<CredentialBase>
+    public sealed class CredentialCollection<TCredentialType> : List<TCredentialType>
+        where TCredentialType : CredentialBase
     {
-        internal CredentialCollection(CredentialProviderBase credentialProvider)
+        internal CredentialCollection(CredentialProviderBase<TCredentialType> credentialProvider)
         {
             CredentialProvider = credentialProvider;
         }
@@ -30,13 +31,13 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
         #region Properties
 
-        private CredentialProviderBase CredentialProvider { get; set; }
+        private CredentialProviderBase<TCredentialType> CredentialProvider { get; set; }
 
         #endregion
 
         #region Methods
 
-        public new CredentialCollection Add(CredentialBase credential)
+        public new CredentialCollection<TCredentialType> Add(TCredentialType credential)
         {
             if (credential == null)
             {

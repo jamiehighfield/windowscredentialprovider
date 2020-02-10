@@ -9,7 +9,9 @@
  * 
  */
 
+using JamieHighfield.CredentialProvider.Credentials;
 using JamieHighfield.CredentialProvider.Providers;
+using JamieHighfield.CredentialProvider.Providers.Interfaces;
 using Microsoft.Win32;
 using System;
 using System.Diagnostics;
@@ -49,7 +51,7 @@ namespace JamieHighfield.CredentialProvider.Registration
                 .Where((type) =>
                 {
                     return
-                        (typeof(CredentialProviderBase).IsAssignableFrom(type)
+                        (typeof(ManagedCredentialProvider).IsAssignableFrom(type)
                         && (type.GetCustomAttribute<ComVisibleAttribute>() != null)
                         && (type.GetCustomAttribute<GuidAttribute>() != null)
                         && (type.GetCustomAttribute<ProgIdAttribute>() != null));
@@ -112,7 +114,7 @@ namespace JamieHighfield.CredentialProvider.Registration
                 .Where((type) =>
                 {
                     return
-                        (typeof(CredentialProviderBase).IsAssignableFrom(type)
+                        (typeof(ManagedCredentialProvider).IsAssignableFrom(type)
                         && (type.GetCustomAttribute<ComVisibleAttribute>() != null)
                         && (type.GetCustomAttribute<GuidAttribute>() != null)
                         && (type.GetCustomAttribute<ProgIdAttribute>() != null));
@@ -164,7 +166,7 @@ namespace JamieHighfield.CredentialProvider.Registration
                 .Where((type) =>
                 {
                     return
-                        (typeof(CredentialProviderBase).IsAssignableFrom(type)
+                        (typeof(ManagedCredentialProvider).IsAssignableFrom(type)
                         && (type.GetCustomAttribute<ComVisibleAttribute>() != null)
                         && (type.GetCustomAttribute<GuidAttribute>() != null)
                         && (type.GetCustomAttribute<ProgIdAttribute>() != null));

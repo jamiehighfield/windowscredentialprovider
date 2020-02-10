@@ -13,28 +13,28 @@ using JamieHighfield.CredentialProvider.Credentials;
 
 namespace JamieHighfield.CredentialProvider.Controls.Events
 {
-    public sealed class LinkControlClickedEventArgs : CredentialControlEventEventArgs<LinkControl>
+    public sealed class LinkControlClickedEventArgs// : CredentialControlEventEventArgs<LinkControl>
     {
-        public LinkControlClickedEventArgs(CredentialBase credential, LinkControl linkControl)
-            : base(credential, linkControl)
-        { }
+        //public LinkControlClickedEventArgs(CredentialBase credential, LinkControl linkControl)
+        //    : base(credential, linkControl)
+        //{ }
 
-        #region Variables
-
-
-
-        #endregion
-
-        #region Properties
+        //#region Variables
 
 
 
-        #endregion
+        //#endregion
 
-        #region Methods
+        //#region Properties
 
 
 
-        #endregion
+        //#endregion
+
+        //#region Methods
+
+
+
+        //#endregion
     }
 }

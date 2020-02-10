@@ -32,7 +32,7 @@ namespace JamieHighfield.CredentialProvider.Sample.Credentials
 
         private Bitmap Image { get; set; }
 
-        private string Username { get; set; }
+        public string Username { get; private set; }
 
         #endregion
 
@@ -40,8 +40,9 @@ namespace JamieHighfield.CredentialProvider.Sample.Credentials
 
         public override void Initialise()
         {
+            Console.WriteLine(Username);
             //Controls.FirstOfControlType<ImageControl>().Image = Image;
-            Controls.FirstOfControlType<LabelControl>().Text = Username;
+            //Controls.FirstOfControlType<LabelControl>().Text = Username;
         }
 
         #endregion

@@ -31,6 +31,8 @@ namespace JamieHighfield.CredentialProvider.Providers
         {
             get
             {
+                //Check the operating system first as this is different between Windows 7/Windows Server 2008 R2 and Windows 8.
+
                 if (Environment.OSVersion.Version.Major < 6)
                 {
                     throw new UnsupportedOperatingSystemException();

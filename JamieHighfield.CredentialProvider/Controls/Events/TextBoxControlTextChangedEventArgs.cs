@@ -9,13 +9,14 @@
  * 
  */
 
+using JamieHighfield.CredentialProvider.Controls.New;
 using JamieHighfield.CredentialProvider.Credentials;
 
 namespace JamieHighfield.CredentialProvider.Controls.Events
 {
-    public sealed class TextBoxControlTextChangedEventArgs : CredentialControlEventEventArgs<TextBoxControl>
+    public sealed class TextBoxControlTextChangedEventArgs : CredentialControlEventEventArgs<NewTextBoxControl>
     {
-        public TextBoxControlTextChangedEventArgs(CredentialBase credential, TextBoxControl textBoxControl)
+        public TextBoxControlTextChangedEventArgs(CredentialBase credential, NewTextBoxControl textBoxControl)
             : base(credential, textBoxControl)
         { }
 

@@ -40,7 +40,7 @@ namespace JamieHighfield.CredentialProvider.Controls
         }
 
         internal LabelControl(Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, string> text, LabelControlSizes size)
-            :base(CredentialControlTypes.Label, visibility)
+            : base(CredentialControlTypes.Label, visibility)
         {
             if (text == null)
             {
@@ -77,7 +77,7 @@ namespace JamieHighfield.CredentialProvider.Controls
             {
                 _text.Value = value;
 
-                TextChanged?.Invoke(this, new LabelControlTextChangedEventArgs(Credential, this));
+                //TextChanged?.Invoke(this, new LabelControlTextChangedEventArgs(Credential, this));
 
                 Credential?.Events?.SetFieldString(Credential, (uint)Field.FieldId, Text);
             }
@@ -103,7 +103,7 @@ namespace JamieHighfield.CredentialProvider.Controls
         {
             _text.Value = text;
 
-            TextChanged?.Invoke(this, new LabelControlTextChangedEventArgs(Credential, this));
+            //TextChanged?.Invoke(this, new LabelControlTextChangedEventArgs(Credential, this));
         }
 
         internal override CredentialControlBase Clone()

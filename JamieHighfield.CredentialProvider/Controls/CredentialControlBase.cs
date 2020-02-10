@@ -50,7 +50,7 @@ namespace JamieHighfield.CredentialProvider.Controls
 
         internal CredentialField Field { get; set; }
 
-        internal CredentialProviderBase CredentialProvider { get; set; }
+        //internal CredentialProviderBase CredentialProvider { get; set; }
 
         internal CredentialBase Credential { get; set; }
 

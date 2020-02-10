@@ -58,7 +58,7 @@ namespace JamieHighfield.CredentialProvider.Controls
             {
                 _text.Value = value;
 
-                TextChanged?.Invoke(this, new TextBoxControlTextChangedEventArgs(Credential, this));
+                //TextChanged?.Invoke(this, new TextBoxControlTextChangedEventArgs(Credential, this));
 
                 Credential?.Events?.SetFieldString(Credential, (uint)Field.FieldId, Text);
             }
@@ -89,7 +89,7 @@ namespace JamieHighfield.CredentialProvider.Controls
         {
             _text.Value = text ?? throw new ArgumentNullException(nameof(text));
 
-            TextChanged?.Invoke(this, new TextBoxControlTextChangedEventArgs(Credential, this));
+            //TextChanged?.Invoke(this, new TextBoxControlTextChangedEventArgs(Credential, this));
         }
 
         internal override CredentialControlBase Clone()
