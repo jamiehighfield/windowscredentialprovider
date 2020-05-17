@@ -13,7 +13,7 @@ using JamieHighfield.CredentialProvider.Interop;
 
 namespace JamieHighfield.CredentialProvider.Credentials
 {
-    internal sealed class EventsWrapper : ICredentialProviderCredentialEvents
+    internal class EventsWrapper : ICredentialProviderCredentialEvents
     {
         internal EventsWrapper(CredentialBase bridgedCredential, ICredentialProviderCredentialEvents bridgedEvents)
         {

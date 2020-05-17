@@ -101,7 +101,7 @@ namespace JamieHighfield.CredentialProvider.Logging
 
                 string methodName = method.DeclaringType?.Name + "." + method.Name;
 
-                Logger?.Log(LogLevels.Information, "[" + methodName + "] calleda.");
+                Logger?.Log(LogLevels.Information, "[" + methodName + "] called.");
             }
         }
 

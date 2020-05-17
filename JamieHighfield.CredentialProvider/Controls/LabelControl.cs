@@ -1,71 +1,42 @@
-﻿/* COPYRIGHT NOTICE
- * 
- * Copyright © Jamie Highfield 2018. All rights reserved.
- * 
- * This library is protected by UK, EU & international copyright laws and treaties. Unauthorised
- * reproduction of this library outside of the constraints of the accompanied license, or any
- * portion of it, may result in severe criminal penalties that will be prosecuted to the
- * maximum extent possible under the law.
- * 
- */
-
-using JamieHighfield.CredentialProvider.Controls.Events;
+﻿using JamieHighfield.CredentialProvider.Controls.Events;
 using JamieHighfield.CredentialProvider.Credentials;
 using JamieHighfield.CredentialProvider.Interop;
-using JamieHighfield.CredentialProvider.Providers;
 using System;
 
-namespace JamieHighfield.CredentialProvider.Controls
+namespace JamieHighfield.CredentialProvider.Controls.New
 {
-    /// <summary>
-    /// A non-interactable text control.
-    /// </summary>
     public sealed class LabelControl : CredentialControlBase
     {
-        internal LabelControl()
-            : base(CredentialControlTypes.Label)
+        internal LabelControl(CredentialBase credential, CredentialFieldVisibilities visibility, bool forwardToField, Func<LabelControl, Func<CredentialBase, LabelControl, string>> text, LabelControlSizes size, Func<LabelControl, Func<CredentialBase, LabelControl, EventHandler<LabelControlTextChangedEventArgs>>> textChanged)
+            : base(credential, visibility, forwardToField)
         {
-
-        }
-
-        internal LabelControl(Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, string> text)
-            : base(CredentialControlTypes.Label, visibility)
-        {
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
-
-            _text = new DynamicPropertyStore<string>(this, text);
-        }
-
-        internal LabelControl(Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, string> text, LabelControlSizes size)
-            : base(CredentialControlTypes.Label, visibility)
-        {
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
-
-            _text = new DynamicPropertyStore<string>(this, text);
             Size = size;
+
+            if (text is null)
+            {
+                _text = new DynamicPropertyStore<string>(this, (innerCredential) => string.Empty);
+            }
+            else
+            {
+                _text = new DynamicPropertyStore<string>(this, (innerCredential) => (text.Invoke(this)?.Invoke(innerCredential, this) ?? ""));
+            }
+
+            if (textChanged is null)
+            {
+                _textChanged = new DynamicPropertyStore<EventHandler<LabelControlTextChangedEventArgs>>(this, (innerCredential) => null);
+            }
+            else
+            {
+                _textChanged = new DynamicPropertyStore<EventHandler<LabelControlTextChangedEventArgs>>(this, (innerCredential) => textChanged.Invoke(this)?.Invoke(innerCredential, this));
+            }
         }
+
+        private DynamicPropertyStore<string> _text = null;
+
+        private DynamicPropertyStore<EventHandler<LabelControlTextChangedEventArgs>> _textChanged = null;
         
-        #region Variables
-        
-        private DynamicPropertyStore<string> _text;
-
-        #endregion
-
-        #region Properties
-
         /// <summary>
-        /// Gets the size of either <see cref="LabelControlSizes.Small"/> or <see cref="LabelControlSizes.Large"/> for this <see cref="LabelControl"/>.
-        /// </summary>
-        public LabelControlSizes Size { get; private set; }
-
-        /// <summary>
-        /// Gets or sets the text for this <see cref="LabelControl"/>.
+        /// Gets or sets the text for this control.
         /// </summary>
         public string Text
         {
@@ -77,54 +48,33 @@ namespace JamieHighfield.CredentialProvider.Controls
             {
                 _text.Value = value;
 
-                //TextChanged?.Invoke(this, new LabelControlTextChangedEventArgs(Credential, this));
+                TextChanged?.Invoke(this, new LabelControlTextChangedEventArgs(Credential, this));
 
                 Credential?.Events?.SetFieldString(Credential, (uint)Field.FieldId, Text);
             }
         }
 
-        #endregion
-
-        #region Methods
-
-        internal override _CREDENTIAL_PROVIDER_FIELD_TYPE GetNativeFieldType()
-        {
-            if (Size == LabelControlSizes.Small)
-            {
-                return _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_SMALL_TEXT;
-            }
-            else
-            {
-                return _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_LARGE_TEXT;
-            }
-        }
-
         internal void UpdateText(string text)
         {
-            _text.Value = text;
+            _text.Value = text ?? throw new ArgumentNullException(nameof(text));
 
-            //TextChanged?.Invoke(this, new LabelControlTextChangedEventArgs(Credential, this));
+            TextChanged?.Invoke(this, new LabelControlTextChangedEventArgs(Credential, this));
         }
-
-        internal override CredentialControlBase Clone()
-        {
-            return new LabelControl()
-            {
-                Visibility = Visibility,
-                Size = Size,
-                Text = Text
-            };
-        }
-
-        #endregion
-
-        #region Events
 
         /// <summary>
-        /// This event is fired when the text for this label is changed.
+        /// Gets the size for this control.
         /// </summary>
-        public event EventHandler<LabelControlTextChangedEventArgs> TextChanged;
+        public LabelControlSizes Size { get; }
 
-        #endregion
+        /// <summary>
+        /// Gets the text changed event handler for this control.
+        /// </summary>
+        public EventHandler<LabelControlTextChangedEventArgs> TextChanged
+        {
+            get
+            {
+                return _textChanged.Value;
+            }
+        }
     }
 }

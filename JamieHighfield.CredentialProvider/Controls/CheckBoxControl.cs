@@ -1,69 +1,74 @@
-﻿/* COPYRIGHT NOTICE
- * 
- * Copyright © Jamie Highfield 2018. All rights reserved.
- * 
- * This library is protected by UK, EU & international copyright laws and treaties. Unauthorised
- * reproduction of this library outside of the constraints of the accompanied license, or any
- * portion of it, may result in severe criminal penalties that will be prosecuted to the
- * maximum extent possible under the law.
- * 
- */
-
-using JamieHighfield.CredentialProvider.Controls.Events;
+﻿using JamieHighfield.CredentialProvider.Controls.Events;
+using JamieHighfield.CredentialProvider.Credentials;
 using JamieHighfield.CredentialProvider.Interop;
-using JamieHighfield.CredentialProvider.Providers;
 using System;
+using System.Windows.Forms;
 
-namespace JamieHighfield.CredentialProvider.Controls
+namespace JamieHighfield.CredentialProvider.Controls.New
 {
-    public sealed class CheckBoxControl : LabelledCredentialControlBase
+    public sealed class CheckBoxControl : CredentialControlBase
     {
-        public CheckBoxControl()
-            : base(CredentialControlTypes.CheckBox)
-        { }
-
-        #region Variables
-
-
-
-        #endregion
-
-        #region Properties
-
-        public bool Checked { get; internal set; }
-
-        #endregion
-
-        #region Methods
-
-        internal override _CREDENTIAL_PROVIDER_FIELD_TYPE GetNativeFieldType()
+        internal CheckBoxControl(CredentialBase credential, CredentialFieldVisibilities visibility, bool forwardToField, string label, Func<CheckBoxControl, Func<CredentialBase, CheckBoxControl, bool>> @checked, Func<CheckBoxControl, Func<CredentialBase, CheckBoxControl, EventHandler<CheckBoxControlCheckChangedEventArgs>>> checkChanged)
+            : base(credential, visibility, forwardToField)
         {
-            return _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_CHECKBOX;
-        }
+            Label = label ?? throw new ArgumentNullException(nameof(label));
 
-        internal override CredentialControlBase Clone()
-        {
-            CheckBoxControl checkBoxControl = new CheckBoxControl()
+            if (@checked is null)
             {
-                Visibility = Visibility,
-                Label = Label,
-                Checked = Checked
-            };
-
-            if (CheckChanged != null)
+                _checked = new DynamicPropertyStore<bool>(this, (innerCredential) => false);
+            }
+            else
             {
-                checkBoxControl.CheckChanged += CheckChanged;
+                _checked = new DynamicPropertyStore<bool>(this, (innerCredential) => (@checked.Invoke(this)?.Invoke(innerCredential, this) ?? false));
             }
 
-            return checkBoxControl;
+            if (checkChanged is null)
+            {
+                _checkChanged = new DynamicPropertyStore<EventHandler<CheckBoxControlCheckChangedEventArgs>>(this, (innerCredential) => null);
+            }
+            else
+            {
+                _checkChanged = new DynamicPropertyStore<EventHandler<CheckBoxControlCheckChangedEventArgs>>(this, (innerCredential) => checkChanged.Invoke(this)?.Invoke(innerCredential, this));
+            }
         }
 
-        #endregion
+        private DynamicPropertyStore<bool> _checked = null;
 
-        #region Events
+        private DynamicPropertyStore<EventHandler<CheckBoxControlCheckChangedEventArgs>> _checkChanged = null;
 
-        public event EventHandler<CheckBoxControlCheckChangedEventArgs> CheckChanged;
+        /// <summary>
+        /// Gets the label for this control.
+        /// </summary>
+        public string Label { get; }
 
-        #endregion
+        /// <summary>
+        /// Gets the check state for this control.
+        /// </summary>
+        public bool Checked
+        {
+            get
+            {
+                return _checked.Value;
+            }
+            set
+            {
+                _checked.Value = value;
+
+                CheckChanged?.Invoke(this, new CheckBoxControlCheckChangedEventArgs(Credential, this));
+
+                Credential?.Events?.SetFieldCheckbox(Credential, (uint)Field.FieldId, (Checked == true ? 1 : 0), Label);
+            }
+        }
+
+        /// <summary>
+        /// Gets the text changed event handler for this control.
+        /// </summary>
+        public EventHandler<CheckBoxControlCheckChangedEventArgs> CheckChanged
+        {
+            get
+            {
+                return _checkChanged.Value;
+            }
+        }
     }
 }

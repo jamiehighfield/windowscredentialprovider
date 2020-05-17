@@ -1,66 +1,30 @@
-﻿/* COPYRIGHT NOTICE
- * 
- * Copyright © Jamie Highfield 2018. All rights reserved.
- * 
- * This library is protected by UK, EU & international copyright laws and treaties. Unauthorised
- * reproduction of this library outside of the constraints of the accompanied license, or any
- * portion of it, may result in severe criminal penalties that will be prosecuted to the
- * maximum extent possible under the law.
- * 
- */
-
-using JamieHighfield.CredentialProvider.Credentials;
+﻿using JamieHighfield.CredentialProvider.Credentials;
 using JamieHighfield.CredentialProvider.Interop;
-using JamieHighfield.CredentialProvider.Providers;
 using System;
 
-namespace JamieHighfield.CredentialProvider.Controls
+namespace JamieHighfield.CredentialProvider.Controls.New
 {
-    /// <summary>
-    /// An abstract class that all controls on the credential will inherit from.
-    /// </summary>
     public abstract class CredentialControlBase
     {
-        internal CredentialControlBase(CredentialControlTypes type)
+        protected CredentialControlBase(CredentialBase credential, CredentialFieldVisibilities visibility, bool forwardToField)
         {
-            Type = type;
+            Credential = credential ?? throw new ArgumentNullException(nameof(credential));
+            ForwardToField = forwardToField;
+
+            _visibility = new DynamicPropertyStore<CredentialFieldVisibilities>(this, (_) => visibility);
         }
 
-        internal CredentialControlBase(CredentialControlTypes type, Func<CredentialBase, CredentialFieldVisibilities> visibility)
-        {
-            if (visibility == null)
-            {
-                throw new ArgumentNullException(nameof(visibility));
-            }
+        private DynamicPropertyStore<CredentialFieldVisibilities> _visibility = null;
 
-            Type = type;
+        /// <summary>
+        /// Gets the <see cref="CredentialBase"/> that underpins this control.
+        /// </summary>
+        public CredentialBase Credential { get; }
 
-            _visibility = new DynamicPropertyStore<CredentialFieldVisibilities>(this, visibility);
-        }
-
-        #region Variables
-
-        private DynamicPropertyStore<CredentialFieldVisibilities> _visibility;
-
-        #endregion
-
-        #region Properties
-
-        #region Miscellaneous
-
-        internal CredentialField Field { get; set; }
-
-        //internal CredentialProviderBase CredentialProvider { get; set; }
-
-        internal CredentialBase Credential { get; set; }
-
-        internal Action<Action<CredentialBase, int>> EventCallback { get; set; }
-
-        #endregion
-
-        internal CredentialControlTypes Type { get; set; }
-
-        internal CredentialFieldVisibilities Visibility
+        /// <summary>
+        /// Gets the visibility for this control;
+        /// </summary>
+        public CredentialFieldVisibilities Visibility
         {
             get
             {
@@ -69,53 +33,21 @@ namespace JamieHighfield.CredentialProvider.Controls
             set
             {
                 _visibility.Value = value;
+
+                //TODO TextChanged?.Invoke(this, new LabelControlTextChangedEventArgs(Credential, this));
+
+                Credential?.Events?.SetFieldState(Credential, (uint)Field.FieldId, (_CREDENTIAL_PROVIDER_FIELD_STATE)(int)Visibility);
             }
         }
 
-        #endregion
+        /// <summary>
+        /// Gets or sets the <see cref="CredentialField"/> assigned to this control.
+        /// </summary>
+        internal CredentialField Field { get; set; }
 
-        #region Methods
-
-        internal abstract _CREDENTIAL_PROVIDER_FIELD_TYPE GetNativeFieldType();
-
-        internal virtual _CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR GetFieldDescriptor(int fieldId)
-        {
-            _CREDENTIAL_PROVIDER_FIELD_TYPE type = GetNativeFieldType();
-
-            return new _CREDENTIAL_PROVIDER_FIELD_DESCRIPTOR()
-            {
-                dwFieldID = (uint)fieldId,
-                cpft = type,
-                pszLabel = string.Empty,
-                guidFieldType = default(Guid)
-            };
-        }
-
-        internal _CREDENTIAL_PROVIDER_FIELD_STATE GetFieldState()
-        {
-            _CREDENTIAL_PROVIDER_FIELD_STATE visibility = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_HIDDEN;
-
-            if (Visibility.HasFlag(CredentialFieldVisibilities.SelectedCredential) == true)
-            {
-                if (Visibility.HasFlag(CredentialFieldVisibilities.DeselectedCredential) == true)
-                {
-                    visibility = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_BOTH;
-                }
-                else
-                {
-                    visibility = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_SELECTED_TILE;
-                }
-            }
-            else if (Visibility.HasFlag(CredentialFieldVisibilities.DeselectedCredential) == true)
-            {
-                visibility = _CREDENTIAL_PROVIDER_FIELD_STATE.CPFS_DISPLAY_IN_DESELECTED_TILE;
-            }
-
-            return visibility;
-        }
-
-        internal abstract CredentialControlBase Clone();
-
-        #endregion
+        /// <summary>
+        /// Gets a value indicating whether value stores should be redirected to the field for processing.
+        /// </summary>
+        public bool ForwardToField { get; }
     }
 }

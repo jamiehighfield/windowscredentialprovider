@@ -44,7 +44,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
                 throw new ArgumentNullException(nameof(credential));
             }
 
-            credential.CredentialProvider = CredentialProvider;
+            credential.ManagedCredentialProvider = CredentialProvider;
 
             base.Add(credential);
 

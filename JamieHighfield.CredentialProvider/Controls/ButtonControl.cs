@@ -1,54 +1,28 @@
-﻿/* COPYRIGHT NOTICE
- * 
- * Copyright © Jamie Highfield 2018. All rights reserved.
- * 
- * This library is protected by UK, EU & international copyright laws and treaties. Unauthorised
- * reproduction of this library outside of the constraints of the accompanied license, or any
- * portion of it, may result in severe criminal penalties that will be prosecuted to the
- * maximum extent possible under the law.
- * 
- */
-
+﻿using JamieHighfield.CredentialProvider.Credentials;
 using JamieHighfield.CredentialProvider.Interop;
-using JamieHighfield.CredentialProvider.Providers;
 using System;
 
-namespace JamieHighfield.CredentialProvider.Controls
+namespace JamieHighfield.CredentialProvider.Controls.New
 {
-    public sealed class ButtonControl : LabelledCredentialControlBase
+    public sealed class ButtonControl : CredentialControlBase
     {
-        internal ButtonControl()
-            : base(CredentialControlTypes.Button)
-        { }
-
-        #region Variables
-
-
-
-        #endregion
-
-        #region Properties
-
-        public CredentialControlBase AdjacentControl { get; internal set; }
-
-        #endregion
-
-        #region Methods
-
-        internal override _CREDENTIAL_PROVIDER_FIELD_TYPE GetNativeFieldType()
+        internal ButtonControl(CredentialBase credential, CredentialFieldVisibilities visibility, bool forwardToField, Func<CredentialBase, CredentialControlBase> adjacentControl)
+            : base(credential, visibility, forwardToField)
         {
-            return _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_SUBMIT_BUTTON;
+            _adjacentControl = new DynamicPropertyStore<CredentialControlBase>(this, adjacentControl);
         }
 
-        internal override CredentialControlBase Clone()
+        private DynamicPropertyStore<CredentialControlBase> _adjacentControl = null;
+        
+        /// <summary>
+        /// Gets the adjacent control for this control.
+        /// </summary>
+        public CredentialControlBase AdjacentControl
         {
-            return new ButtonControl()
+            get
             {
-                Visibility = Visibility,
-                Label = Label
-            };
+                return _adjacentControl.Value;
+            }
         }
-
-        #endregion
     }
 }

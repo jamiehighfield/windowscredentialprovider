@@ -20,6 +20,8 @@ namespace JamieHighfield.CredentialProvider.Sample.Providers
         public LocalWindowsAuthenticationCredentialProviderMultipleSample()
             : base(CredentialProviderUsageScenarios.All)
         {
+            GlobalLogger.Enabled = true;
+
             CredentialsFactory = (credentials) =>
             {
                 //Enumerate the appropriate credentials - this is hardcoded, but you could easily perform get which credentials
@@ -57,7 +59,7 @@ namespace JamieHighfield.CredentialProvider.Sample.Providers
                             options.Visibility = CredentialFieldVisibilities.Both;
                         }
 
-                        options.Image = (credential) =>
+                        options.Image = (credential, control) =>
                         {
                             if (((LocalWindowsAuthenticationCredentialMultipleSample)credential).Username == Environment.MachineName + @"\jsmith")
                             {
@@ -80,7 +82,7 @@ namespace JamieHighfield.CredentialProvider.Sample.Providers
                             options.Visibility = CredentialFieldVisibilities.Both;
                         }
 
-                        options.Text = (credential) => ((LocalWindowsAuthenticationCredentialMultipleSample)credential).Username;
+                        options.Text = (credential, control) => ((LocalWindowsAuthenticationCredentialMultipleSample)credential).Username;
                     })
                     .AddTextBox((options) =>
                     {
@@ -88,11 +90,11 @@ namespace JamieHighfield.CredentialProvider.Sample.Providers
 
                         options.Visibility = CredentialFieldVisibilities.SelectedCredential;
 
-                        options.Label = "User name";
+                        options.Label = "User name"; //Inconsistent spelling of 'username', but the spelling with a space is consistent with Windows 10.
 
-                        options.TextChanged = (credential) => (sender, eventArgs) =>
+                        options.TextChanged = (credential, control) => (sender, eventArgs) =>
                         {
-                            credential.Controls.FirstOfControlType<NewLabelControl>(1).Text = eventArgs.Control.Text;
+                            credential.Controls.FirstOfControlType<LabelControl>(1).Text = eventArgs.Control.Text;
                         };
                     })
                     .AddPasswordTextBox((options) =>
@@ -102,23 +104,27 @@ namespace JamieHighfield.CredentialProvider.Sample.Providers
                         options.Visibility = CredentialFieldVisibilities.SelectedCredential;
 
                         options.Label = "Password";
+
+                        options.ShowPasswordRevealGlyph = true; //The icon that can be pressed and de-pressed to show and hide the inputted password. This is part of Windows 10.
                     })
                     .AddLabel((options) =>
                     {
                         options.Visibility = CredentialFieldVisibilities.SelectedCredential;
 
-                        options.Text = (credential) => "Domain: ";
+                        options.Text = (credential, control) => "Domain: ";
                     })
                     .AddLink((options) =>
                     {
                         options.Visibility = CredentialFieldVisibilities.SelectedCredential;
 
-                        options.Text = (credential) => "Reset Password";
+                        options.Text = (credential, control) => "Reset Password";
 
-                        options.Click = (credential) => (sender, eventHandler) =>
+                        options.Click = (credential, control) => (sender, eventHandler) =>
                         {
                             MessageBox.Show(environment.MainWindowHandle, "Reset Password");
-                            credential.Controls.FirstOfControlType<NewTextBoxControl>().Text = "abc";
+                            credential.Controls.FirstOfControlType<TextBoxControl>().Text = "abc";
+
+                            InvokeSubmit();
                         };
                     });
             };

@@ -36,7 +36,7 @@ namespace JamieHighfield.CredentialProvider.Sample.Providers
 
                         options.Size = LabelControlSizes.Small;
 
-                        options.Text = (credential) => "In order to login to the network, you first need to connect to the VPN. Enter your VPN user name and password below.";
+                        options.Text = (credential, control) => "In order to login to the network, you first need to connect to the VPN. Enter your VPN user name and password below.";
                     })
                     .AddTextBox((options) =>
                     {
@@ -44,20 +44,20 @@ namespace JamieHighfield.CredentialProvider.Sample.Providers
 
                         options.Label = "VPN User name";
 
-                        options.Focussed = (credential) => true;
+                        options.Focussed = (credential, control) => true;
                     })
                     .AddPasswordTextBox((options) =>
                     {
                         options.Visibility = CredentialFieldVisibilities.SelectedCredential;
 
                         options.Label = "Password";
-                    })
-                    .AddButton((options) =>
-                    {
-                        options.Visibility = CredentialFieldVisibilities.SelectedCredential;
-
-                        options.AdjacentControl = (credential) => credential.Controls.FirstOfControlType<NewTextBoxControl>(1);
                     });
+                    //.AddButton((options) =>
+                    //{
+                    //    options.Visibility = CredentialFieldVisibilities.SelectedCredential;
+
+                //    options.AdjacentControl = (credential) => credential.Controls.FirstOfControlType<TextBoxControl>(1);
+                //});
             };
         }
     }

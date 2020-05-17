@@ -9,11 +9,12 @@
  * 
  */
 
+using JamieHighfield.CredentialProvider.Controls.New;
 using System.Collections.Generic;
 
 namespace JamieHighfield.CredentialProvider.Credentials
 {
-    public sealed class CredentialFieldCollection : List<CredentialField>
+    internal sealed class CredentialFieldCollection : List<CredentialField>
     {
         #region Variables
 

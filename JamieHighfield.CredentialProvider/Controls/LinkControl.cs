@@ -1,43 +1,39 @@
-﻿/* COPYRIGHT NOTICE
- * 
- * Copyright © Jamie Highfield 2018. All rights reserved.
- * 
- * This library is protected by UK, EU & international copyright laws and treaties. Unauthorised
- * reproduction of this library outside of the constraints of the accompanied license, or any
- * portion of it, may result in severe criminal penalties that will be prosecuted to the
- * maximum extent possible under the law.
- * 
- */
-
-using JamieHighfield.CredentialProvider.Controls.Events;
-using JamieHighfield.CredentialProvider.Credentials;
+﻿using JamieHighfield.CredentialProvider.Credentials;
 using JamieHighfield.CredentialProvider.Interop;
 using System;
 
-namespace JamieHighfield.CredentialProvider.Controls
+namespace JamieHighfield.CredentialProvider.Controls.New
 {
     public sealed class LinkControl : CredentialControlBase
     {
-        internal LinkControl()
-            : base(CredentialControlTypes.Link)
-        { }
-
-        internal LinkControl(Func<CredentialBase, CredentialFieldVisibilities> visibility, Func<CredentialBase, string> text)
-            : base(CredentialControlTypes.Link, visibility)
+        internal LinkControl(CredentialBase credential, CredentialFieldVisibilities visibility, bool forwardToField, Func<LinkControl, Func<CredentialBase, LinkControl, string>> text, Func<LinkControl, Func<CredentialBase, LinkControl, EventHandler>> click)
+            : base(credential, visibility, forwardToField)
         {
-            _text = new DynamicPropertyStore<string>(this, text);
+            if (text is null)
+            {
+                _text = new DynamicPropertyStore<string>(this, (innerCredential) => string.Empty);
+            }
+            else
+            {
+                _text = new DynamicPropertyStore<string>(this, (innerCredential) => (text.Invoke(this)?.Invoke(innerCredential, this) ?? ""));
+            }
+
+            if (click is null)
+            {
+                _click = new DynamicPropertyStore<EventHandler>(this, (innerCredential) => null);
+            }
+            else
+            {
+                _click = new DynamicPropertyStore<EventHandler>(this, (innerCredential) => click.Invoke(this)?.Invoke(innerCredential, this));
+            }
         }
 
-        #region Variables
+        private DynamicPropertyStore<string> _text = null;
 
-        private DynamicPropertyStore<string> _text;
+        private DynamicPropertyStore<EventHandler> _click = null;
 
-        #endregion
-
-        #region Properties
-        
         /// <summary>
-        /// Gets or sets the text for this <see cref="LabelControl"/>.
+        /// Gets the text for this control.
         /// </summary>
         public string Text
         {
@@ -45,52 +41,17 @@ namespace JamieHighfield.CredentialProvider.Controls
             {
                 return _text.Value;
             }
-            set
+        }
+
+        /// <summary>
+        /// Gets the click event handler for this control.
+        /// </summary>
+        public EventHandler Click
+        {
+            get
             {
-                _text.Value = value;
-
-                //TextChanged?.Invoke(this, new TextBoxControlTextChangedEventArgs(Credential, this));
-
-                Credential?.Events?.SetFieldString(Credential, (uint)Field.FieldId, Text);
+                return _click.Value;
             }
         }
-
-        #endregion
-
-        #region Methods
-
-        internal override _CREDENTIAL_PROVIDER_FIELD_TYPE GetNativeFieldType()
-        {
-            return _CREDENTIAL_PROVIDER_FIELD_TYPE.CPFT_COMMAND_LINK;
-        }
-
-        internal void InvokeClicked(object sender, LinkControlClickedEventArgs eventArgs)
-        {
-            Clicked?.Invoke(sender, eventArgs);
-        }
-
-        internal override CredentialControlBase Clone()
-        {
-            LinkControl linkControl = new LinkControl()
-            {
-                Text = Text,
-                Visibility = Visibility
-            };
-
-            if (Clicked != null)
-            {
-                linkControl.Clicked += Clicked;
-            }
-
-            return linkControl;
-        }
-
-        #endregion
-
-        #region Events
-
-        public event EventHandler<LinkControlClickedEventArgs> Clicked;
-
-        #endregion
     }
 }

@@ -27,7 +27,17 @@ namespace JamieHighfield.CredentialProvider.Sample.Providers
                 //interfaces, such as 'IConnectableCredential', then the credential returned here must extend the correct base classes in
                 //order to maintain the wrapped functionality. This delegate is used to provide this.
 
-                return new ConnectableWrappedCredentialSample();
+                //For most use cases, the Windows credential provider does not verify credentials in the credentials UI dialog. In most cases,
+                //it would not make sense for additional connections to be made using the 'IConnectableCredential' interface.
+
+                //if (environment.CurrentUsageScenario == CredentialProviderUsageScenarios.CredentialsDialog)
+                {
+                    //return new WrappedCredentialSample();
+                }
+                //else
+                {
+                    return new ConnectableWrappedCredentialSample();
+                }
             };
 
             DescriptorsFactory = (environment, descriptors) =>
@@ -40,9 +50,9 @@ namespace JamieHighfield.CredentialProvider.Sample.Providers
                     {
                         options.Visibility = CredentialFieldVisibilities.SelectedCredential;
 
-                        options.Text = (credential) => "Reset Password";
+                        options.Text = (credential, control) => "Reset Password";
 
-                        options.Click = (credential) => (sender, eventArgs) =>
+                        options.Click = (credential, control) => (sender, eventArgs) =>
                         {
                             MessageBox.Show(environment.MainWindowHandle, "Reset Password");
                         };
@@ -51,7 +61,7 @@ namespace JamieHighfield.CredentialProvider.Sample.Providers
                     {
                         options.Visibility = CredentialFieldVisibilities.SelectedCredential;
 
-                        options.Text = (credential) => "Checked: False";
+                        options.Text = (credential, control) => "Checked: False";
                     })
                     .AddCheckBox((options) =>
                     {
@@ -59,9 +69,9 @@ namespace JamieHighfield.CredentialProvider.Sample.Providers
 
                         options.Label = "Remember Me";
 
-                        options.CheckChange = (credential) => (sender, eventArgs) =>
+                        options.CheckChange = (credential, control) => (sender, eventArgs) =>
                         {
-                            credential.Controls.FirstOfControlType<NewLabelControl>().Text = "Checked: " + eventArgs.Control.Checked.ToString();
+                            credential.Controls.FirstOfControlType<LabelControl>().Text = "Checked: " + eventArgs.Control.Checked.ToString();
                         };
                     });
             };

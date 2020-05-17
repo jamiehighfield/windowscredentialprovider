@@ -11,6 +11,7 @@
 
 using JamieHighfield.CredentialProvider.Controls;
 using JamieHighfield.CredentialProvider.Controls.New;
+using JamieHighfield.CredentialProvider.Credentials.Interfaces;
 using JamieHighfield.CredentialProvider.Interfaces;
 using JamieHighfield.CredentialProvider.Interop;
 using JamieHighfield.CredentialProvider.Logging;
@@ -19,7 +20,9 @@ using JamieHighfield.CredentialProvider.Providers;
 using JamieHighfield.CredentialProvider.Providers.Interfaces;
 using JamieHighfield.CredentialProvider.WindowsAuthentication;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -36,7 +39,11 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// <summary>
         /// Instantiate a new <see cref="CredentialBase"/> object.
         /// </summary>
-        protected CredentialBase() { }
+        protected CredentialBase()
+        {
+            Controls = new List<CredentialControlBase>();
+            Fields = new CredentialFieldCollection();
+        }
 
         /// <summary>
         /// Instantiate a new <see cref="CredentialBase"/> object.
@@ -45,6 +52,9 @@ namespace JamieHighfield.CredentialProvider.Credentials
         protected CredentialBase(LogonSequencePipelineBase logonSequencePipeline)
         {
             LogonSequencePipeline = logonSequencePipeline;
+
+            Controls = new List<CredentialControlBase>();
+            Fields = new CredentialFieldCollection();
         }
 
         #region Variables
@@ -60,12 +70,12 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// <summary>
         /// Gets the <see cref="CredentialProviderUsageScenarios"/> that this credential provider will support when requested by Windows.
         /// </summary>
-        public CredentialProviderUsageScenarios SupportedUsageScenarios => CredentialProvider.SupportedUsageScenarios;
+        public CredentialProviderUsageScenarios SupportedUsageScenarios => ManagedCredentialProvider.SupportedUsageScenarios;
 
         /// <summary>
         /// Gets the <see cref="CredentialProviderUsageScenarios"/> representing the current scenario under which the credential provider is operating.
         /// </summary>
-        public CredentialProviderUsageScenarios CurrentUsageScenario => CredentialProvider.CurrentUsageScenario;
+        public CredentialProviderUsageScenarios CurrentUsageScenario => ManagedCredentialProvider.CurrentUsageScenario;
 
         /// <summary>
         /// Gets the handle of the main window for the parent process.
@@ -77,7 +87,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// <summary>
         /// Gets or sets the <see cref="CredentialProviderBase"/> that enumerates this credential.
         /// </summary>
-        internal ManagedCredentialProvider CredentialProvider { get; set; }
+        public ManagedCredentialProvider ManagedCredentialProvider { get; internal set; }
 
         /// <summary>
         /// Gets or sets the <see cref="ICredentialProviderCredential"/> that underlies this <see cref="CredentialBase"/> (only pertinent to when this credential is wrapping another credential).
@@ -87,7 +97,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// <summary>
         /// Gets a read-only collection of <see cref="CredentialControlBase"/>. The <see cref="CredentialControlBase"/> enumerated here are specific to this credential, and any changes here won't be reflected in any other credentials.
         /// </summary>
-        public ReadOnlyCollection<NewCredentialControlBase> Controls { get; internal set; }
+        public List<CredentialControlBase> Controls { get; internal set; }
 
         /// <summary>
         /// Gets the <see cref="LogonSequencePipelineBase"/> used during the logon sequence to authenticate, authorise and manipulate incoming credentials.
@@ -108,6 +118,21 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Gets a <see cref="CredentialFieldCollection"/> of <see cref="CredentialField"/> representing the raw field data with the associated control. This will only include managed fields; those from wrapped credentials will not be included, although, the field ID will appear as though all fields are included.
         /// </summary>
         internal CredentialFieldCollection Fields { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <see cref="Logon.LogonResponse"/> which is returned from the output of running the <see cref="LogonSequencePipeline"/>. This property can be used as a link between the <see cref="ProcessConnection(Connection)"/> and <see cref="ProcessLogon"/> methods.
+        /// </summary>
+        public LogonResponse LogonResponse { get; set; }
+
+        /// <summary>
+        /// Gets or sets the delegate that will be run on connection.
+        /// </summary>
+        public Action<ICurrentEnvironment, Connection> ConnectionFactory { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <see cref="Credentials.Connection"/> which is used during the credential's connection phase.
+        /// </summary>
+        private Connection Connection { get; set; }
 
         #endregion
 
@@ -130,7 +155,23 @@ namespace JamieHighfield.CredentialProvider.Credentials
 
         internal virtual ResultMessageInformation ResultMessage()
         {
+            if (this is IConnectableCredential)
+            {
+                if (Connection != null)
+                {
+                    if (Connection.Cancelled == true)
+                    {
+                        return new ResultMessageInformation(Connection.ErrorMessage, Connection.Icon);
+                    }
+                }
+            }
+
             return null;
+        }
+
+        public void InvokeSubmit()
+        {
+
         }
 
         /// <summary>
@@ -177,13 +218,21 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        int ICredentialProviderCredential.Advise(ICredentialProviderCredentialEvents pcpce)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int Advise(ICredentialProviderCredentialEvents pcpce)
         {
             GlobalLogger.LogMethodCall();
 
             if (pcpce != null)
             {
-                Events = new EventsWrapper(this, pcpce);
+                if (pcpce is ICredentialProviderCredentialEvents2 extendedCredentialProviderEvents)
+                {
+                    Events = new ExtendedEventsWrapper(this, extendedCredentialProviderEvents);
+                }
+                else
+                {
+                    Events = new EventsWrapper(this, pcpce);
+                }
 
                 Marshal.AddRef(Marshal.GetIUnknownForObject(pcpce));
 
@@ -218,7 +267,8 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        int ICredentialProviderCredential.UnAdvise()
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int UnAdvise()
         {
             GlobalLogger.LogMethodCall();
 
@@ -241,7 +291,8 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        int ICredentialProviderCredential.SetSelected(out int pbAutoLogon)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int SetSelected(out int pbAutoLogon)
         {
             GlobalLogger.LogMethodCall();
 
@@ -259,7 +310,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
                 }
             }
 
-            CredentialProvider.CurrentCredential = this;
+            ManagedCredentialProvider.CurrentCredential = this;
 
             pbAutoLogon = 0;
 
@@ -272,13 +323,14 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        int ICredentialProviderCredential.SetDeselected()
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int SetDeselected()
         {
             GlobalLogger.LogMethodCall();
 
             int result = UnderlyingCredential?.SetDeselected() ?? HRESULT.E_NOTIMPL;
 
-            CredentialProvider.CurrentCredential = null;
+            ManagedCredentialProvider.CurrentCredential = null;
 
             return result;
         }
@@ -287,13 +339,19 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        int ICredentialProviderCredential.GetFieldState(uint dwFieldID, out _CREDENTIAL_PROVIDER_FIELD_STATE pcpfs, out _CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE pcpfis)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int GetFieldState(uint dwFieldID, out _CREDENTIAL_PROVIDER_FIELD_STATE pcpfs, out _CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE pcpfis)
         {
             GlobalLogger.LogMethodCall();
 
             uint count = 0;
 
-            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
+            if (dwFieldID == 25)
+            {
+
+            }
+
+            int result = ManagedCredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
@@ -313,13 +371,13 @@ namespace JamieHighfield.CredentialProvider.Credentials
                     return HRESULT.E_INVALIDARG;
                 }
 
-                CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
+                CredentialField identifiedField = Fields[(int)dwFieldID];
 
-                pcpfs = identifiedField.GetState();
+                pcpfs = identifiedField.FieldState;
 
-                if (identifiedField.Control is NewTextBoxControl)
+                if (identifiedField.Control is TextBoxControl)
                 {
-                    if (((NewTextBoxControl)identifiedField.Control).Focussed == true)
+                    if (((TextBoxControl)identifiedField.Control).Focussed == true)
                     {
                         pcpfis = _CREDENTIAL_PROVIDER_FIELD_INTERACTIVE_STATE.CPFIS_FOCUSED;
                     }
@@ -343,13 +401,14 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        int ICredentialProviderCredential.GetStringValue(uint dwFieldID, out string ppsz)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int GetStringValue(uint dwFieldID, out string ppsz)
         {
             GlobalLogger.LogMethodCall();
 
             uint count = 0;
 
-            int result = (CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK);
+            int result = (ManagedCredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK);
 
             if (result != HRESULT.S_OK)
             {
@@ -367,17 +426,17 @@ namespace JamieHighfield.CredentialProvider.Credentials
                     return HRESULT.E_INVALIDARG;
                 }
 
-                CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
+                CredentialField identifiedField = Fields[(int)dwFieldID];
 
-                if (identifiedField.Control is NewLabelControl labelControl)
+                if (identifiedField.Control is LabelControl labelControl)
                 {
                     ppsz = labelControl.Text;
                 }
-                else if (identifiedField.Control is NewTextBoxControl textBoxControl)
+                else if (identifiedField.Control is TextBoxControl textBoxControl)
                 {
                     ppsz = textBoxControl.Text;
                 }
-                else if (identifiedField.Control is NewLinkControl linkControl)
+                else if (identifiedField.Control is LinkControl linkControl)
                 {
                     ppsz = linkControl.Text;
                 }
@@ -398,13 +457,14 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        int ICredentialProviderCredential.GetBitmapValue(uint dwFieldID, out IntPtr phbmp)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int GetBitmapValue(uint dwFieldID, out IntPtr phbmp)
         {
             GlobalLogger.LogMethodCall();
 
             uint count = 0;
 
-            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
+            int result = ManagedCredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
@@ -422,9 +482,9 @@ namespace JamieHighfield.CredentialProvider.Credentials
                     return HRESULT.E_INVALIDARG;
                 }
 
-                CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
+                CredentialField identifiedField = Fields[(int)dwFieldID];
 
-                if (identifiedField.Control is NewImageControl imageControl)
+                if (identifiedField.Control is ImageControl imageControl)
                 {
                     phbmp = imageControl.Image.GetHbitmap();
                 }
@@ -445,13 +505,14 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        int ICredentialProviderCredential.GetCheckboxValue(uint dwFieldID, out int pbChecked, out string ppszLabel)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int GetCheckboxValue(uint dwFieldID, out int pbChecked, out string ppszLabel)
         {
             GlobalLogger.LogMethodCall();
 
             uint count = 0;
 
-            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
+            int result = ManagedCredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
@@ -471,9 +532,9 @@ namespace JamieHighfield.CredentialProvider.Credentials
                     return HRESULT.E_INVALIDARG;
                 }
 
-                CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
+                CredentialField identifiedField = Fields[(int)dwFieldID];
 
-                if (identifiedField.Control is NewCheckBoxControl checkBoxControl)
+                if (identifiedField.Control is CheckBoxControl checkBoxControl)
                 {
                     pbChecked = checkBoxControl.Checked ? 1 : 0;
                     ppszLabel = checkBoxControl.Label;
@@ -496,13 +557,14 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        int ICredentialProviderCredential.GetSubmitButtonValue(uint dwFieldID, out uint pdwAdjacentTo)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int GetSubmitButtonValue(uint dwFieldID, out uint pdwAdjacentTo)
         {
             GlobalLogger.LogMethodCall();
 
             uint count = 0;
 
-            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
+            int result = ManagedCredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
@@ -520,9 +582,9 @@ namespace JamieHighfield.CredentialProvider.Credentials
                     return HRESULT.E_INVALIDARG;
                 }
 
-                CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
+                CredentialField identifiedField = Fields[(int)dwFieldID];
 
-                if (identifiedField.Control is NewButtonControl buttonControl)
+                if (identifiedField.Control is ButtonControl buttonControl)
                 {
                     CredentialField adjacentField = Fields
                         .FirstOrDefault(field => field.Control == buttonControl.AdjacentControl);
@@ -553,13 +615,14 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        int ICredentialProviderCredential.GetComboBoxValueCount(uint dwFieldID, out uint pcItems, out uint pdwSelectedItem)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int GetComboBoxValueCount(uint dwFieldID, out uint pcItems, out uint pdwSelectedItem)
         {
             GlobalLogger.LogMethodCall();
 
             uint count = 0;
 
-            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
+            int result = ManagedCredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
@@ -584,13 +647,14 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        int ICredentialProviderCredential.GetComboBoxValueAt(uint dwFieldID, uint dwItem, out string ppszItem)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int GetComboBoxValueAt(uint dwFieldID, uint dwItem, out string ppszItem)
         {
             GlobalLogger.LogMethodCall();
 
             uint count = 0;
 
-            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
+            int result = ManagedCredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
@@ -613,13 +677,14 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        int ICredentialProviderCredential.SetStringValue(uint dwFieldID, string psz)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int SetStringValue(uint dwFieldID, string psz)
         {
             GlobalLogger.LogMethodCall();
 
             uint count = 0;
 
-            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
+            int result = ManagedCredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
@@ -633,13 +698,13 @@ namespace JamieHighfield.CredentialProvider.Credentials
                     return HRESULT.E_INVALIDARG;
                 }
 
-                CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
+                CredentialField identifiedField = Fields[(int)dwFieldID];
 
-                if (identifiedField.Control is NewLabelControl labelControl)
+                if (identifiedField.Control is LabelControl labelControl)
                 {
                     //labelControl.UpdateText(psz);
                 }
-                else if (identifiedField.Control is NewTextBoxControl textBoxControl)
+                else if (identifiedField.Control is TextBoxControl textBoxControl)
                 {
                     textBoxControl.UpdateText(psz);
                 }
@@ -658,13 +723,14 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        int ICredentialProviderCredential.SetCheckboxValue(uint dwFieldID, int bChecked)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int SetCheckboxValue(uint dwFieldID, int bChecked)
         {
             GlobalLogger.LogMethodCall();
 
             uint count = 0;
 
-            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
+            int result = ManagedCredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
@@ -678,9 +744,9 @@ namespace JamieHighfield.CredentialProvider.Credentials
                     return HRESULT.E_INVALIDARG;
                 }
 
-                CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
+                CredentialField identifiedField = Fields[(int)dwFieldID];
 
-                if (identifiedField.Control is NewCheckBoxControl checkBoxControl)
+                if (identifiedField.Control is CheckBoxControl checkBoxControl)
                 {
                     checkBoxControl.Checked = bChecked == 1;
                 }
@@ -699,13 +765,14 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        int ICredentialProviderCredential.SetComboBoxSelectedValue(uint dwFieldID, uint dwSelectedItem)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int SetComboBoxSelectedValue(uint dwFieldID, uint dwSelectedItem)
         {
             GlobalLogger.LogMethodCall();
 
             uint count = 0;
 
-            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
+            int result = ManagedCredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
@@ -724,13 +791,14 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        int ICredentialProviderCredential.CommandLinkClicked(uint dwFieldID)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int CommandLinkClicked(uint dwFieldID)
         {
             GlobalLogger.LogMethodCall();
 
             uint count = 0;
 
-            int result = CredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
+            int result = ManagedCredentialProvider.UnderlyingCredentialProvider?.GetFieldDescriptorCount(out count) ?? HRESULT.S_OK;
 
             if (result != HRESULT.S_OK)
             {
@@ -744,9 +812,9 @@ namespace JamieHighfield.CredentialProvider.Credentials
                     return HRESULT.E_INVALIDARG;
                 }
 
-                CredentialField identifiedField = Fields[(int)(dwFieldID - count)];
+                CredentialField identifiedField = Fields[(int)dwFieldID];
 
-                if (identifiedField.Control is NewLinkControl linkCcontrol)
+                if (identifiedField.Control is LinkControl linkCcontrol)
                 {
                     linkCcontrol.Click?.Invoke(this, new EventArgs());
                 }
@@ -765,7 +833,8 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        int ICredentialProviderCredential.GetSerialization(out _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE pcpgsr, out _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION pcpcs, out string ppszOptionalStatusText, out _CREDENTIAL_PROVIDER_STATUS_ICON pcpsiOptionalStatusIcon)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int GetSerialization(out _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE pcpgsr, out _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION pcpcs, out string ppszOptionalStatusText, out _CREDENTIAL_PROVIDER_STATUS_ICON pcpsiOptionalStatusIcon)
         {
             GlobalLogger.LogMethodCall();
 
@@ -837,7 +906,7 @@ namespace JamieHighfield.CredentialProvider.Credentials
                         pcpgsr = _CREDENTIAL_PROVIDER_GET_SERIALIZATION_RESPONSE.CPGSR_RETURN_CREDENTIAL_FINISHED;
                         pcpcs = new _CREDENTIAL_PROVIDER_CREDENTIAL_SERIALIZATION
                         {
-                            clsidCredentialProvider = CredentialProvider.ComGuid,
+                            clsidCredentialProvider = ManagedCredentialProvider.ComGuid,
                             rgbSerialization = negotiateAuthenticationPackage.CredentialInformation,
                             cbSerialization = (uint)negotiateAuthenticationPackage.CredentialSize,
                             ulAuthenticationPackage = (uint)negotiateAuthenticationPackage.AuthenticationPackage
@@ -876,7 +945,8 @@ namespace JamieHighfield.CredentialProvider.Credentials
         /// Statutory method from <see cref="ICredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential for more information.
         /// </summary>
         /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
-        int ICredentialProviderCredential.ReportResult(int ntsStatus, int ntsSubstatus, out string ppszOptionalStatusText, out _CREDENTIAL_PROVIDER_STATUS_ICON pcpsiOptionalStatusIcon)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int ReportResult(int ntsStatus, int ntsSubstatus, out string ppszOptionalStatusText, out _CREDENTIAL_PROVIDER_STATUS_ICON pcpsiOptionalStatusIcon)
         {
             GlobalLogger.LogMethodCall();
 
@@ -889,6 +959,148 @@ namespace JamieHighfield.CredentialProvider.Credentials
             }
 
             return UnderlyingCredential.ReportResult(ntsStatus, ntsSubstatus, out ppszOptionalStatusText, out pcpsiOptionalStatusIcon);
+        }
+
+        #endregion
+
+        #region IConnectableCredentialProviderCredential
+
+        /// <summary>
+        /// Statutory method from <see cref="IConnectableCredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-iconnectablecredentialprovidercredential for more information.
+        /// </summary>
+        /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int Connect(IQueryContinueWithStatus pqcws)
+        {
+            GlobalLogger.LogMethodCall();
+
+            Connection = new Connection(pqcws);
+
+            ConnectionFactory?.Invoke(this, Connection);
+
+            if (Connection.Cancelled == false)
+            {
+                if (UnderlyingCredential != null)
+                {
+                    if (UnderlyingCredential is IConnectableCredentialProviderCredential)
+                    {
+                        int result = ((IConnectableCredentialProviderCredential)UnderlyingCredential).Connect(pqcws);
+
+                        if (result != HRESULT.S_OK)
+                        {
+                            return result;
+                        }
+                    }
+                }
+            }
+
+            return HRESULT.S_OK;
+        }
+
+        /// <summary>
+        /// Statutory method from <see cref="IConnectableCredentialProviderCredential"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-iconnectablecredentialprovidercredential for more information.
+        /// </summary>
+        /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int Disconnect()
+        {
+            GlobalLogger.LogMethodCall();
+
+            if (UnderlyingCredential != null)
+            {
+                if (UnderlyingCredential is IConnectableCredentialProviderCredential)
+                {
+                    int result = HRESULT.E_FAIL;
+
+                    result = ((IConnectableCredentialProviderCredential)UnderlyingCredential).Disconnect();
+
+                    if (result != HRESULT.S_OK)
+                    {
+                        return result;
+                    }
+                }
+            }
+
+            return HRESULT.S_OK;
+        }
+
+        #endregion
+
+        #region ICredentialProviderSetUserArray
+
+        /// <summary>
+        /// Statutory method from <see cref="ICredentialProviderCredential2"/>. See https://docs.microsoft.com/en-us/windows/desktop/api/credentialprovider/nn-credentialprovider-icredentialprovidercredential2 for more information.
+        /// 
+        /// Currently, no managed API has been created for the <see cref="ICredentialProviderCredential2"/> interface other than wrapping an existing credential.
+        /// </summary>
+        /// <returns><see cref="HRESULT"/> integer representing the result of the method.</returns>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public int GetUserSid(out string sid)
+        {
+            GlobalLogger.LogMethodCall();
+
+            if (UnderlyingCredential != null)
+            {
+                if (UnderlyingCredential is ICredentialProviderCredential2)
+                {
+                    int result = HRESULT.E_FAIL;
+
+                    result = ((ICredentialProviderCredential2)UnderlyingCredential).GetUserSid(out sid);
+
+                    if (result != HRESULT.S_OK)
+                    {
+                        sid = string.Empty;
+
+                        return result;
+                    }
+                }
+                else
+                {
+                    sid = string.Empty;
+                }
+            }
+            else
+            {
+                sid = string.Empty;
+            }
+
+            return HRESULT.S_OK;
+        }
+
+        #endregion
+
+        #region ICredentialProviderCredentialWithFieldOptions
+
+        public int GetFieldOptions(uint fieldID, out CREDENTIAL_PROVIDER_CREDENTIAL_FIELD_OPTIONS options)
+        {
+            GlobalLogger.LogMethodCall();
+
+            if (UnderlyingCredential != null)
+            {
+                if (UnderlyingCredential is ICredentialProviderCredentialWithFieldOptions credentialProviderCredentialWithFieldOptions)
+                {
+                    int result = HRESULT.E_FAIL;
+
+                    result = credentialProviderCredentialWithFieldOptions.GetFieldOptions(fieldID, out options);
+
+                    if (result != HRESULT.S_OK)
+                    {
+                        options = default;
+
+                        return result;
+                    }
+                }
+                else
+                {
+                    options = default;
+                }
+            }
+            else
+            {
+                options = default;
+            }
+
+            return HRESULT.S_OK;
         }
 
         #endregion

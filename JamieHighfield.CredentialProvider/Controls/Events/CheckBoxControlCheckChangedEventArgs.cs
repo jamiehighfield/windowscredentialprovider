@@ -14,9 +14,9 @@ using JamieHighfield.CredentialProvider.Credentials;
 
 namespace JamieHighfield.CredentialProvider.Controls.Events
 {
-    public sealed class CheckBoxControlCheckChangedEventArgs : CredentialControlEventEventArgs<NewCheckBoxControl>
+    public sealed class CheckBoxControlCheckChangedEventArgs : CredentialControlEventEventArgs<CheckBoxControl>
     {
-        public CheckBoxControlCheckChangedEventArgs(CredentialBase credential, NewCheckBoxControl checkBoxControl)
+        public CheckBoxControlCheckChangedEventArgs(CredentialBase credential, CheckBoxControl checkBoxControl)
             : base(credential, checkBoxControl)
         { }
 

@@ -1,8 +1,11 @@
-﻿namespace JamieHighfield.CredentialProvider.Controls.Descriptors
+﻿using JamieHighfield.CredentialProvider.Credentials;
+
+namespace JamieHighfield.CredentialProvider.Controls.Descriptors
 {
-    public sealed class ButtonDescriptor : DescriptorBase
+    public sealed class ButtonDescriptor<TCredentialType> : DescriptorBase<TCredentialType>
+        where TCredentialType : CredentialBase
     {
-        internal ButtonDescriptor(ButtonDescriptorOptions options)
+        internal ButtonDescriptor(ButtonDescriptorOptions<TCredentialType> options)
             : base(options)
         { }
     }

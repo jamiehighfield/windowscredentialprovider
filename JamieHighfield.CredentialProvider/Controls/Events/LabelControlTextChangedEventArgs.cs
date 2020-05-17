@@ -14,9 +14,9 @@ using JamieHighfield.CredentialProvider.Credentials;
 
 namespace JamieHighfield.CredentialProvider.Controls.Events
 {
-    public sealed class LabelControlTextChangedEventArgs : CredentialControlEventEventArgs<NewLabelControl>
+    public sealed class LabelControlTextChangedEventArgs : CredentialControlEventEventArgs<LabelControl>
     {
-        public LabelControlTextChangedEventArgs(CredentialBase credential, NewLabelControl labelControl)
+        public LabelControlTextChangedEventArgs(CredentialBase credential, LabelControl labelControl)
             : base(credential, labelControl)
         { }
 

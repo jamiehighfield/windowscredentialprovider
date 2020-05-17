@@ -23,14 +23,14 @@ namespace JamieHighfield.CredentialProvider.Controls
         /// <summary>
         /// Only displayed when this credential is active.
         /// </summary>
-        SelectedCredential = 2,
+        SelectedCredential = 1,
         /// <summary>
         /// Only displayed when this credential isn't active.
         /// </summary>
-        DeselectedCredential = 4,
+        DeselectedCredential = 2,
         /// <summary>
         /// Displayed both when this credential is and isn't active.
         /// </summary>
-        Both = SelectedCredential | DeselectedCredential
+        Both = 3
     }
 }

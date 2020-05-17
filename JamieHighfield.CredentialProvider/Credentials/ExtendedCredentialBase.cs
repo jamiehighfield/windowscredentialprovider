@@ -233,7 +233,6 @@ namespace JamieHighfield.CredentialProvider.Credentials
             return HRESULT.S_OK;
         }
 
-
         #endregion
 
         #endregion

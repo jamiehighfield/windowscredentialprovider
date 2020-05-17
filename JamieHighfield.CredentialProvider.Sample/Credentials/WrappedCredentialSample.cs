@@ -1,8 +1,10 @@
 ﻿using JamieHighfield.CredentialProvider.Credentials;
+using JamieHighfield.CredentialProvider.Credentials.Interfaces;
+using System.Threading;
 
 namespace JamieHighfield.CredentialProvider.Sample.Credentials
 {
-    public sealed class WrappedCredentialSample : ExtendedCredentialBase
+    public class WrappedCredentialSample : CredentialBase, IExtendedCredential
     {
         public WrappedCredentialSample() { }
 

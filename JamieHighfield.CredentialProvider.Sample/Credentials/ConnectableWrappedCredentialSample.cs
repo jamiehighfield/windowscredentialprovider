@@ -1,11 +1,11 @@
 ﻿using JamieHighfield.CredentialProvider.Credentials;
+using JamieHighfield.CredentialProvider.Credentials.Interfaces;
 using JamieHighfield.CredentialProvider.Sample.Forms;
-using System.Threading;
 using System.Windows.Forms;
 
 namespace JamieHighfield.CredentialProvider.Sample.Credentials
 {
-    public sealed class ConnectableWrappedCredentialSample : ConnectableExtendedCredentialBase
+    public class ConnectableWrappedCredentialSample : WrappedCredentialSample, IExtendedCredential, IConnectableCredential
     {
         public ConnectableWrappedCredentialSample()
         {
@@ -13,7 +13,7 @@ namespace JamieHighfield.CredentialProvider.Sample.Credentials
             {
                 connection.UpdateStatus("Waiting for acceptance of the Acceptable Use Policy (AUP)...");
 
-                Thread.Sleep(1000);
+                //Thread.Sleep(1000);
 
                 //MessageBox.Show((environment.MainWindowHandle == null).ToString());
 

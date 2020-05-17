@@ -1,7 +1,7 @@
 ﻿using JamieHighfield.CredentialProvider.Credentials;
 using System;
 
-namespace JamieHighfield.CredentialProvider.Controls
+namespace JamieHighfield.CredentialProvider.Controls.New
 {
     internal class DynamicPropertyStore<TReturnType>
     {
@@ -33,7 +33,14 @@ namespace JamieHighfield.CredentialProvider.Controls
             {
                 if (ValueDelegateInvoked == false)
                 {
-                    InternalValue = ValueDelegate.Invoke(Control.Credential);
+                    if (ValueDelegate == null)
+                    {
+                        InternalValue = default(TReturnType);
+                    }
+                    else
+                    {
+                        InternalValue = ValueDelegate.Invoke(Control.Credential);
+                    }
 
                     ValueDelegateInvoked = true;
                 }

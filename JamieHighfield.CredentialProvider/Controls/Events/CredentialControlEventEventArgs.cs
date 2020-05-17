@@ -16,7 +16,7 @@ using System;
 namespace JamieHighfield.CredentialProvider.Controls.Events
 {
     public abstract class CredentialControlEventEventArgs<TCredentialControlType>
-        where TCredentialControlType : NewCredentialControlBase
+        where TCredentialControlType : CredentialControlBase
     {
         internal CredentialControlEventEventArgs(CredentialBase credential, TCredentialControlType control)
         {

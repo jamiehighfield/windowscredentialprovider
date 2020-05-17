@@ -1,8 +1,11 @@
-﻿namespace JamieHighfield.CredentialProvider.Controls.Descriptors
+﻿using JamieHighfield.CredentialProvider.Credentials;
+
+namespace JamieHighfield.CredentialProvider.Controls.Descriptors
 {
-    public sealed class LinkDescriptor : DescriptorBase
+    public sealed class LinkDescriptor<TCredentialType> : DescriptorBase<TCredentialType>
+        where TCredentialType : CredentialBase
     {
-        internal LinkDescriptor(LinkDescriptorOptions options)
+        internal LinkDescriptor(LinkDescriptorOptions<TCredentialType> options)
             : base(options)
         { }
     }
