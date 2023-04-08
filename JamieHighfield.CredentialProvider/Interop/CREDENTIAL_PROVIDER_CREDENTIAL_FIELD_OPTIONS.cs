@@ -1,0 +1,12 @@
+﻿namespace JamieHighfield.CredentialProvider.Interop
+{
+    public enum CREDENTIAL_PROVIDER_CREDENTIAL_FIELD_OPTIONS
+    {
+        CPCFO_NONE = 0,
+        CPCFO_ENABLE_PASSWORD_REVEAL = 1,
+        CPCFO_IS_EMAIL_ADDRESS = 2,
+        CPCFO_ENABLE_TOUCH_KEYBOARD_AUTO_INVOKE = 4,
+        CPCFO_NUMBERS_ONLY = 8,
+        CPCFO_SHOW_ENGLISH_KEYBOARD = 16, // 0x00000010
+    }
+}
