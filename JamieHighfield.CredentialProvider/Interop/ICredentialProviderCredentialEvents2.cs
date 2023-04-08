@@ -53,14 +53,14 @@ namespace JamieHighfield.CredentialProvider.Interop
 
         [MethodImpl(MethodImplOptions.PreserveSig | MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)]
         [return: MarshalAs(UnmanagedType.Error)]
-        int BeginFieldUpdates();
+        ResultHandles BeginFieldUpdates();
 
         [MethodImpl(MethodImplOptions.PreserveSig | MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)]
         [return: MarshalAs(UnmanagedType.Error)]
-        int EndFieldUpdates();
+        ResultHandles EndFieldUpdates();
 
         [MethodImpl(MethodImplOptions.PreserveSig | MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)]
         [return: MarshalAs(UnmanagedType.Error)]
-        int SetFieldOptions([MarshalAs(UnmanagedType.Interface), In] ICredentialProviderCredential credential, [In] uint fieldID,[In] CREDENTIAL_PROVIDER_CREDENTIAL_FIELD_OPTIONS options);
+        ResultHandles SetFieldOptions([MarshalAs(UnmanagedType.Interface), In] ICredentialProviderCredential credential, [In] uint fieldID,[In] CREDENTIAL_PROVIDER_CREDENTIAL_FIELD_OPTIONS options);
     }
 }
