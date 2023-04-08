@@ -41,4 +41,4 @@ This screenshot wraps the existing Windows password credential provider, and add
 
 ## License Information
 
-Versions 1.x are issued under the MIT license. There are no restrictions on the use of the software, except that the MIT license must be attributed to any open-source or commercial redistributions of the software. *The MIT license was chosen for this software to protect commercial interests in the use of the software, whilst at the same time, enabling the software to be used freely in open-source projects.*
+Currently not licensable.
