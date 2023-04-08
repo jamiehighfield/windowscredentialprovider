@@ -15,10 +15,12 @@ using JamieHighfield.CredentialProvider.Providers.Interfaces;
 using Microsoft.Win32;
 using System;
 using System.Diagnostics;
+using System.EnterpriseServices.Internal;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Windows.Forms;
 
 namespace JamieHighfield.CredentialProvider.Registration
 {
@@ -46,6 +48,30 @@ namespace JamieHighfield.CredentialProvider.Registration
             }
 
             AssemblyCredentialProviderCollection assemblyCredentialProviders = new AssemblyCredentialProviderCollection();
+
+            try
+            {
+                assembly.GetTypes()
+                .Where((type) =>
+                {
+                    return
+                        (typeof(ManagedCredentialProvider).IsAssignableFrom(type)
+                        && (type.GetCustomAttribute<ComVisibleAttribute>() != null)
+                        && (type.GetCustomAttribute<GuidAttribute>() != null)
+                        && (type.GetCustomAttribute<ProgIdAttribute>() != null));
+                })
+                .Select((type) =>
+                {
+                    GuidAttribute comGuid = type.GetCustomAttribute<GuidAttribute>();
+                    ProgIdAttribute comName = type.GetCustomAttribute<ProgIdAttribute>();
+
+                    return new AssemblyCredentialProvider(Guid.Parse(comGuid.Value), comName.Value, IsComRegistered(Guid.Parse(comGuid.Value), comName.Value), IsCredentialProviderRegistered(assembly, Guid.Parse(comGuid.Value), comName.Value));
+                });
+            }
+            catch(Exception ex)
+            {
+
+            }
 
             foreach (AssemblyCredentialProvider assemblyCredentialProvider in assembly.GetTypes()
                 .Where((type) =>
@@ -129,14 +155,14 @@ namespace JamieHighfield.CredentialProvider.Registration
             {
                 string frameworkInstallationPath = RuntimeEnvironment.GetRuntimeDirectory();
 
+                string assemblyLocation = GetSystemDirectory() + @"\" + Path.GetFileName(assembly.Location);
+
                 ProcessStartInfo processStartInfo = new ProcessStartInfo(
-                    Path.Combine(frameworkInstallationPath, "regasm.exe"), "\"" + assembly.Location + "\"");
+                    Path.Combine(frameworkInstallationPath, "regasm.exe"), " /codebase \"" + assemblyLocation + "\"");
 
                 processStartInfo.RedirectStandardOutput = true;
                 processStartInfo.UseShellExecute = false;
                 processStartInfo.CreateNoWindow = true;
-
-                Process.Start(processStartInfo).WaitForExit();
 
                 RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
                     .OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers", true)
@@ -152,6 +178,11 @@ namespace JamieHighfield.CredentialProvider.Registration
 
                 File.Copy(assembly.Location, Path.Combine(
                     GetSystemDirectory(), Path.GetFileName(assembly.Location)));
+
+                Process.Start(processStartInfo).WaitForExit();
+                
+                //Publish publish = new Publish();
+                //publish.GacInstall(assemblyLocation);
             }
         }
 
@@ -181,14 +212,14 @@ namespace JamieHighfield.CredentialProvider.Registration
             {
                 string frameworkInstallationPath = RuntimeEnvironment.GetRuntimeDirectory();
 
+                string assemblyLocation = GetSystemDirectory() + @"\" + Path.GetFileName(assembly.Location);
+
                 ProcessStartInfo processStartInfo = new ProcessStartInfo(
-                    Path.Combine(frameworkInstallationPath, "regasm.exe"), "/unregister \"" + assembly.Location + "\"");
+                    Path.Combine(frameworkInstallationPath, "regasm.exe"), "/unregister \"" + assemblyLocation + "\"");
 
                 processStartInfo.RedirectStandardOutput = true;
                 processStartInfo.UseShellExecute = false;
                 processStartInfo.CreateNoWindow = true;
-
-                Process.Start(processStartInfo).WaitForExit();
 
                 RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
                     .OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers", true)
@@ -196,6 +227,11 @@ namespace JamieHighfield.CredentialProvider.Registration
 
                 File.Delete(Path.Combine(
                     GetSystemDirectory(), Path.GetFileName(assembly.Location)));
+
+                Process.Start(processStartInfo).WaitForExit();
+
+                //Publish publish = new Publish();
+                //publish.GacRemove(assemblyLocation);
             }
         }
 

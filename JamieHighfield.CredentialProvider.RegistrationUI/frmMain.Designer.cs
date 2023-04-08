@@ -49,6 +49,7 @@ namespace JamieHighfield.CredentialProvider.RegistrationUI
             this.mimUnregisterAssembly = new System.Windows.Forms.MenuItem();
             this.mimTools = new System.Windows.Forms.MenuItem();
             this.mimCredentialsDialog = new System.Windows.Forms.MenuItem();
+            this.menuItem1 = new System.Windows.Forms.MenuItem();
             this.sbrMain = new System.Windows.Forms.StatusBar();
             this.sbpStatus = new System.Windows.Forms.StatusBarPanel();
             this.pnlMain = new System.Windows.Forms.Panel();
@@ -104,7 +105,8 @@ namespace JamieHighfield.CredentialProvider.RegistrationUI
             // 
             this.mimTools.Index = 1;
             this.mimTools.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
-            this.mimCredentialsDialog});
+            this.mimCredentialsDialog,
+            this.menuItem1});
             this.mimTools.Text = "&Tools";
             // 
             // mimCredentialsDialog
@@ -112,6 +114,12 @@ namespace JamieHighfield.CredentialProvider.RegistrationUI
             this.mimCredentialsDialog.Index = 0;
             this.mimCredentialsDialog.Text = "&Credentials Dialog...";
             this.mimCredentialsDialog.Click += new System.EventHandler(this.mimCredentialsDialog_Click);
+            // 
+            // menuItem1
+            // 
+            this.menuItem1.Index = 1;
+            this.menuItem1.Text = "Here";
+            this.menuItem1.Click += new System.EventHandler(this.menuItem1_Click);
             // 
             // sbrMain
             // 
@@ -214,6 +222,7 @@ namespace JamieHighfield.CredentialProvider.RegistrationUI
         private System.Windows.Forms.MenuItem mimUnregisterAssembly;
         private System.Windows.Forms.MenuItem mimTools;
         private System.Windows.Forms.MenuItem mimCredentialsDialog;
+        private System.Windows.Forms.MenuItem menuItem1;
     }
 }
 

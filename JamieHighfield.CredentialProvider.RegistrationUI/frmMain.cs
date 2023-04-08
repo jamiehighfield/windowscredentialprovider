@@ -140,11 +140,16 @@ namespace JamieHighfield.CredentialProvider.RegistrationUI
 
         private void mimCredentialsDialog_Click(object sender, EventArgs e)
         {
-            Utilities.ShowCredentialsDialog();
+            Utilities.ShowCredentialsDialog(Handle);
         }
 
         #endregion
 
         #endregion
+
+        private void menuItem1_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }

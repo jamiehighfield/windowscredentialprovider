@@ -50,12 +50,13 @@ namespace JamieHighfield.CredentialProvider.Registration
 
         #region Methods
 
-        public static void ShowCredentialsDialog()
+        public static void ShowCredentialsDialog(IntPtr parent = default)
         {
             CREDUI_INFO uiInfo = new CREDUI_INFO();
             uiInfo.cbSize = Marshal.SizeOf(uiInfo);
             uiInfo.pszCaptionText = "Example";
             uiInfo.pszMessageText = "Example message.";
+            uiInfo.hwndParent = parent;
 
             uint authenticationPackage = 0;
 

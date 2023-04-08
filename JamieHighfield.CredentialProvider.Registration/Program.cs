@@ -9,12 +9,15 @@
  * 
  */
 
+using System;
+
 namespace JamieHighfield.CredentialProvider.Registration
 {
     public static class Program
     {
         private static void Main(string[] args)
         {
+            Console.ReadLine();
             Utilities.ShowCredentialsDialog();
         }
 
